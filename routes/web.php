@@ -2,6 +2,8 @@
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 // Redirect root URL to dashboard
 Route::get('/', function () {
@@ -49,14 +51,14 @@ Route::get('/debug/clients', function () {
     if (!app()->environment('local')) {
         abort(404);
     }
-    
-    $columns = \Schema::getColumnListing('clients');
+
+    $columns = Schema::getColumnListing('clients');
     $client = \App\Models\Client::first();
-    
+
     return [
         'columns' => $columns,
         'first_client' => $client ? $client->toArray() : null,
-        'migrations' => \DB::table('migrations')->get(),
+        'migrations' => DB::table('migrations')->get(),
     ];
 });
 
@@ -96,19 +98,19 @@ Route::prefix('clients')->name('clients.')->group(function () {
     Route::prefix('{client}/branches')->name('branches.')->group(function () {
         Route::post('/', [\App\Http\Controllers\BranchController::class, 'store'])->name('store');
         Route::get('/create', [\App\Http\Controllers\BranchController::class, 'create'])->name('create');
-        
+
         // Nested routes that need both client and branch
         Route::prefix('{branch}')->group(function () {
             Route::get('/edit', [\App\Http\Controllers\BranchController::class, 'edit'])->name('edit');
             Route::put('/', [\App\Http\Controllers\BranchController::class, 'update'])->name('update');
             Route::delete('/', [\App\Http\Controllers\BranchController::class, 'destroy'])->name('destroy');
-            
+
             // Checkpoints Routes
             Route::prefix('checkpoints')->name('checkpoints.')->group(function () {
                 Route::get('/', [\App\Http\Controllers\CheckpointController::class, 'index'])->name('index');
                 Route::post('/', [\App\Http\Controllers\CheckpointController::class, 'store'])->name('store');
                 Route::get('/create', [\App\Http\Controllers\CheckpointController::class, 'create'])->name('create');
-                
+
                 // Nested routes that need client, branch, and checkpoint
                 Route::prefix('{checkpoint}')->group(function () {
                     Route::get('/', [\App\Http\Controllers\CheckpointController::class, 'show'])->name('show');
@@ -123,11 +125,10 @@ Route::prefix('clients')->name('clients.')->group(function () {
 });
 
 // Test route for serving JavaScript file
-Route::get('/js/users.js', function() {
+Route::get('/js/users.js', function () {
     $path = public_path('js/users.js');
     if (file_exists($path)) {
         return response()->file($path, ['Content-Type' => 'application/javascript']);
     }
     abort(404, 'File not found');
 })->name('js.users');
-
