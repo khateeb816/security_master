@@ -1,0 +1,349 @@
+// Users Management JavaScript
+
+// Load branches for a client
+window.loadBranches = function(clientId, isEdit = false) {
+    const prefix = isEdit ? 'edit' : '';
+    const branchSelect = document.getElementById(`${prefix}BranchId`);
+    const latitudeInput = document.getElementById(`${prefix}Latitude`);
+    const longitudeInput = document.getElementById(`${prefix}Longitude`);
+
+    if (!clientId) {
+        if (branchSelect) {
+            branchSelect.innerHTML = '<option value="">-- Select Branch --</option>';
+            branchSelect.disabled = true;
+        }
+        if (latitudeInput) latitudeInput.value = '';
+        if (longitudeInput) longitudeInput.value = '';
+        return;
+    }
+
+    // Show loading state
+    if (branchSelect) {
+        branchSelect.innerHTML = '<option value="" disabled>Loading branches...</option>';
+        branchSelect.disabled = false;
+    }
+
+    // Fetch branches for the selected client
+    fetch(`/clients/${clientId}/branches`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.data && data.data.length > 0) {
+                // Populate branch dropdown
+                branchSelect.innerHTML = '<option value="">-- Select Branch --</option>';
+                data.data.forEach(branch => {
+                    const option = new Option(branch.branch_name || branch.name, branch.id);
+                    option.dataset.latitude = branch.latitude || '';
+                    option.dataset.longitude = branch.longitude || '';
+                    branchSelect.add(option);
+                });
+                branchSelect.disabled = false;
+            } else {
+                branchSelect.innerHTML = '<option value="">No branches available</option>';
+                branchSelect.disabled = true;
+            }
+        })
+        .catch(error => {
+            console.error('Error loading branches:', error);
+            if (branchSelect) {
+                branchSelect.innerHTML = '<option value="">Error loading branches</option>';
+                branchSelect.disabled = true;
+            }
+        });
+};
+
+// Update coordinates when a branch is selected
+window.updateCoordinates = function(select, isEdit = false) {
+    const prefix = isEdit ? 'edit' : '';
+    const latitudeInput = document.getElementById(`${prefix}Latitude`);
+    const longitudeInput = document.getElementById(`${prefix}Longitude`);
+    const selectedOption = select.options[select.selectedIndex];
+
+    if (selectedOption && selectedOption.dataset.latitude && selectedOption.dataset.longitude) {
+        if (latitudeInput) latitudeInput.value = selectedOption.dataset.latitude;
+        if (longitudeInput) longitudeInput.value = selectedOption.dataset.longitude;
+    } else {
+        if (latitudeInput) latitudeInput.value = '';
+        if (longitudeInput) longitudeInput.value = '';
+    }
+};
+
+// Load branches for edit modal with coordinate matching
+window.loadBranchesForEdit = function(clientId, latitude, longitude) {
+    console.log('loadBranchesForEdit called with:', { clientId, latitude, longitude });
+    const branchSelect = document.getElementById('editBranchId');
+    const latInput = document.getElementById('editLatitude');
+    const lngInput = document.getElementById('editLongitude');
+
+    if (!branchSelect) {
+        console.error('Branch select element not found');
+        return;
+    }
+
+    if (!clientId) {
+        branchSelect.innerHTML = '<option value="">-- Select Branch --</option>';
+        branchSelect.disabled = true;
+        if (latInput) latInput.value = '';
+        if (lngInput) lngInput.value = '';
+        return;
+    }
+
+    // Show loading state
+    branchSelect.innerHTML = '<option value="" disabled>Loading branches...</option>';
+    branchSelect.disabled = false;
+
+    // Fetch branches for the selected client
+    fetch(`/clients/${clientId}/branches`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Branches loaded:', data);
+            if (data.success && data.data && data.data.length > 0) {
+                // Populate branch dropdown
+                branchSelect.innerHTML = '<option value="">-- Select Branch --</option>';
+                let branchFound = false;
+                
+                data.data.forEach(branch => {
+                    const option = new Option(branch.branch_name || branch.name, branch.id);
+                    const branchLat = branch.latitude ? branch.latitude.toString() : '';
+                    const branchLng = branch.longitude ? branch.longitude.toString() : '';
+                    
+                    option.dataset.latitude = branchLat;
+                    option.dataset.longitude = branchLng;
+                    branchSelect.add(option);
+
+                    // Select the branch if coordinates match
+                    if (branchLat && branchLng && 
+                        branchLat === latitude && 
+                        branchLng === longitude) {
+                        option.selected = true;
+                        // Update coordinates when branch is selected
+                        if (latInput) latInput.value = branchLat;
+                        if (lngInput) lngInput.value = branchLng;
+                        branchFound = true;
+                    }
+                });
+                
+                // If no branch was found with matching coordinates, select the first one
+                if (!branchFound && branchSelect.options.length > 1) {
+                    branchSelect.selectedIndex = 1; // First option is the default "Select Branch"
+                    const selectedOption = branchSelect.options[branchSelect.selectedIndex];
+                    if (latInput) latInput.value = selectedOption.dataset.latitude || '';
+                    if (lngInput) lngInput.value = selectedOption.dataset.longitude || '';
+                }
+                
+                branchSelect.disabled = false;
+            } else {
+                branchSelect.innerHTML = '<option value="">No branches available</option>';
+                branchSelect.disabled = true;
+                if (latInput) latInput.value = '';
+                if (lngInput) lngInput.value = '';
+            }
+        })
+        .catch(error => {
+            console.error('Error loading branches:', error);
+            branchSelect.innerHTML = '<option value="">Error loading branches</option>';
+            branchSelect.disabled = true;
+            if (latInput) latInput.value = '';
+            if (lngInput) lngInput.value = '';
+        });
+};
+
+// Handle edit user button click
+window.editUser = function(button) {
+    console.log('editUser called with button:', button);
+    const userId = button.getAttribute('data-id');
+    const modalElement = document.getElementById('editUserModal');
+    const modal = new bootstrap.Modal(modalElement);
+    const form = document.getElementById('editUserForm');
+    
+    if (!form) {
+        console.error('Edit form not found');
+        return;
+    }
+    
+    // Set form action
+    form.action = `/users/${userId}`;
+    
+    // Populate form fields from data attributes
+    const fields = ['name', 'email', 'phone', 'cnic', 'nfc_uid', 'designation', 'role', 'status', 'client_id', 'branch_id', 'latitude', 'longitude'];
+    fields.forEach(field => {
+        const element = document.getElementById(`edit${field.charAt(0).toUpperCase() + field.slice(1)}`);
+        if (element) {
+            const value = button.getAttribute(`data-${field}`) || '';
+            if (element.tagName === 'SELECT') {
+                element.value = value;
+            } else if (element.tagName === 'INPUT') {
+                element.value = value;
+            }
+        }
+    });
+    
+    // Get client and coordinates
+    const clientId = button.getAttribute('data-client_id') || '';
+    const latitude = button.getAttribute('data-latitude') || '';
+    const longitude = button.getAttribute('data-longitude') || '';
+    
+    const clientSelect = document.getElementById('editClientId');
+    const branchSelect = document.getElementById('editBranchId');
+    
+    // If client is selected, load branches
+    if (clientId && clientSelect) {
+        clientSelect.value = clientId;
+        loadBranchesForEdit(clientId, latitude, longitude);
+    } else if (branchSelect) {
+        branchSelect.innerHTML = '<option value="">-- No branches available --</option>';
+        branchSelect.disabled = true;
+    }
+    
+    // Show the modal
+    modal.show();
+};
+
+// Initialize the application when the DOM is fully loaded
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('User management script loaded');
+    
+    // Handle edit form submission
+    const editForm = document.getElementById('editUserForm');
+    if (editForm) {
+        console.log('Edit form found, adding submit handler');
+        editForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            console.log('Edit form submission started');
+            
+            const form = e.target;
+            const formData = new FormData(form);
+            const submitButton = form.querySelector('button[type="submit"]');
+            const originalButtonText = submitButton.innerHTML;
+            const errorDiv = document.getElementById('editFormErrors');
+            
+            // Reset error display
+            if (errorDiv) {
+                errorDiv.classList.add('d-none');
+                const errorList = errorDiv.querySelector('ul');
+                if (errorList) errorList.innerHTML = '';
+            }
+
+            try {
+                // Show loading state
+                submitButton.disabled = true;
+                submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
+
+                // Submit the form
+                const response = await fetch(form.action, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json',
+                    },
+                    body: formData
+                });
+
+                const data = await response.json();
+                console.log('Form submission response:', data);
+
+                if (response.ok && data.success) {
+                    // Show success message and reload
+                    alert('User updated successfully');
+                    window.location.reload();
+                } else {
+                    // Show validation errors if any
+                    if (data.errors) {
+                        if (errorDiv) {
+                            const errorList = errorDiv.querySelector('ul') || document.createElement('ul');
+                            errorList.innerHTML = ''; // Clear previous errors
+                            
+                            Object.values(data.errors).forEach(errorMessages => {
+                                errorMessages.forEach(message => {
+                                    const li = document.createElement('li');
+                                    li.textContent = message;
+                                    errorList.appendChild(li);
+                                });
+                            });
+                            
+                            errorDiv.appendChild(errorList);
+                            errorDiv.classList.remove('d-none');
+                        }
+                        throw new Error('Please fix the form errors and try again.');
+                    }
+                    throw new Error(data.message || 'Failed to update user');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                if (!error.message.includes('form errors')) { // Don't show duplicate error messages
+                    alert('Error: ' + error.message);
+                }
+            } finally {
+                // Reset button state
+                submitButton.disabled = false;
+                submitButton.innerHTML = originalButtonText;
+            }
+        });
+    }
+
+    // Initialize event listeners for client and branch selects
+    function initializeEventListeners() {
+        console.log('Initializing event listeners');
+        
+        // Add User form
+        const clientSelect = document.getElementById('client_id');
+        if (clientSelect) {
+            console.log('Found client select, adding change handler');
+            clientSelect.addEventListener('change', function() {
+                console.log('Client selected:', this.value);
+                loadBranches(this.value);
+            });
+        }
+
+        // Edit User form
+        const editClientSelect = document.getElementById('editClientId');
+        if (editClientSelect) {
+            console.log('Found edit client select, adding change handler');
+            editClientSelect.addEventListener('change', function() {
+                console.log('Edit client selected:', this.value);
+                const branchSelect = document.getElementById('editBranchId');
+                if (branchSelect) {
+                    branchSelect.innerHTML = '<option value="" disabled>Loading branches...</option>';
+                    branchSelect.disabled = true;
+                }
+                loadBranches(this.value, true);
+            });
+        }
+
+        // Branch selects
+        const branchSelect = document.getElementById('branch_id');
+        if (branchSelect) {
+            console.log('Found branch select, adding change handler');
+            branchSelect.addEventListener('change', function() {
+                console.log('Branch selected:', this.value);
+                updateCoordinates(this);
+            });
+        }
+
+        const editBranchSelect = document.getElementById('editBranchId');
+        if (editBranchSelect) {
+            console.log('Found edit branch select, adding change handler');
+            editBranchSelect.addEventListener('change', function() {
+                console.log('Edit branch selected:', this.value);
+                updateCoordinates(this, true);
+            });
+        }
+    }
+    
+    // Initialize all event listeners
+    initializeEventListeners();
+    
+    // Re-initialize event listeners when the edit modal is shown
+    const editModal = document.getElementById('editUserModal');
+    if (editModal) {
+        editModal.addEventListener('shown.bs.modal', function() {
+            console.log('Edit modal shown, re-initializing event listeners');
+            initializeEventListeners();
+        });
+    }
+});
