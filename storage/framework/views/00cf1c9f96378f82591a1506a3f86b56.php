@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="csrf-token" content="<?php echo e(csrf_token()); ?>">
     <title>Patrol Sync</title>
 
-    {{-- Google Fonts --}}
+    
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
 
-    {{-- Bootstrap --}}
+    
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 
     <!-- Font Awesome (Latest CDN) -->
@@ -109,12 +109,12 @@
     <!-- Sidebar -->
     <div class="sidebar">
         <div class="logo">
-<img src="{{ asset('assets/logo.png') }}" alt="Logo">
+<img src="<?php echo e(asset('assets/logo.png')); ?>" alt="Logo">
         </div>
-        <a href="{{ route('dashboard') }}" class="{{ request()->routeIs('dashboard') ? 'active' : '' }}"><i class="fas fa-chart-line me-2"></i> Dashboard</a>
-        <a href="{{ route('clients.index') }}" class="{{ request()->routeIs('clients.index') ? 'active' : '' }}"><i class="fas fa-building me-2"></i> Add Clients</a>
-        <a href="{{ route('guards.index') }}" class="{{ request()->routeIs('guards.index') ? 'active' : '' }}"><i class="fas fa-user-shield me-2"></i> Add Guards</a>
-        @php
+        <a href="<?php echo e(route('dashboard')); ?>" class="<?php echo e(request()->routeIs('dashboard') ? 'active' : ''); ?>"><i class="fas fa-chart-line me-2"></i> Dashboard</a>
+        <a href="<?php echo e(route('clients.index')); ?>" class="<?php echo e(request()->routeIs('clients.index') ? 'active' : ''); ?>"><i class="fas fa-building me-2"></i> Add Clients</a>
+        <a href="<?php echo e(route('guards.index')); ?>" class="<?php echo e(request()->routeIs('guards.index') ? 'active' : ''); ?>"><i class="fas fa-building me-2"></i> Add Guards</a>
+        <?php
             $firstClient = \App\Models\User::where('role' , 'client')->first();
             $firstBranch = $firstClient ? $firstClient->branches()->first() : null;
             $checkpointUrl = $firstClient && $firstBranch
@@ -123,12 +123,12 @@
 
             // Debug info - can be removed later
             // dd(route('clients.branches.checkpoints.index', ['client' => $firstClient->id, 'branch' => $firstBranch->id]));
-        @endphp
-        <a href="{{ $checkpointUrl }}" class="{{ request()->routeIs('clients.branches.checkpoints.*') ? 'active' : '' }}" id="checkpoints-nav-link">
+        ?>
+        <a href="<?php echo e($checkpointUrl); ?>" class="<?php echo e(request()->routeIs('clients.branches.checkpoints.*') ? 'active' : ''); ?>" id="checkpoints-nav-link">
             <i class="fas fa-map-marker-alt me-2"></i> Checkpoints
         </a>
 
-        @push('scripts')
+        <?php $__env->startPush('scripts'); ?>
         <script>
             document.addEventListener('DOMContentLoaded', function() {
                 const checkpointsLink = document.getElementById('checkpoints-nav-link');
@@ -140,11 +140,11 @@
                 }
             });
         </script>
-        @endpush
-        <a href="{{ route('patrol.logs') }}" class="{{ request()->routeIs('patrol.logs') ? 'active' : '' }}"><i class="fas fa-route me-2"></i> Patrol Logs</a>
-        <a href="{{ route('incidents') }}" class="{{ request()->routeIs('incidents') ? 'active' : '' }}"><i class="fas fa-bolt me-2"></i> Incidents</a>
-        <a href="{{ route('alerts') }}" class="{{ request()->routeIs('alerts') ? 'active' : '' }}"><i class="fas fa-bell me-2"></i> Alerts</a>
-        <a href="{{ route('users.index') }}" class="{{ request()->routeIs('users.*') ? 'active' : '' }}"><i class="fas fa-users me-2"></i> Users</a>
+        <?php $__env->stopPush(); ?>
+        <a href="<?php echo e(route('patrol.logs')); ?>" class="<?php echo e(request()->routeIs('patrol.logs') ? 'active' : ''); ?>"><i class="fas fa-route me-2"></i> Patrol Logs</a>
+        <a href="<?php echo e(route('incidents')); ?>" class="<?php echo e(request()->routeIs('incidents') ? 'active' : ''); ?>"><i class="fas fa-bolt me-2"></i> Incidents</a>
+        <a href="<?php echo e(route('alerts')); ?>" class="<?php echo e(request()->routeIs('alerts') ? 'active' : ''); ?>"><i class="fas fa-bell me-2"></i> Alerts</a>
+        <a href="<?php echo e(route('users.index')); ?>" class="<?php echo e(request()->routeIs('users.*') ? 'active' : ''); ?>"><i class="fas fa-users me-2"></i> Users</a>
     </div>
 
     <!-- Main Content -->
@@ -201,18 +201,18 @@
 
     <ul class="dropdown-menu dropdown-menu-end shadow-sm" aria-labelledby="profileDropdown">
         <li>
-            <a class="dropdown-item" href="{{ route('edit') }}">
+            <a class="dropdown-item" href="<?php echo e(route('edit')); ?>">
                 <i class="fas fa-user-edit me-2 text-primary"></i> Edit Profile
             </a>
         </li>
         <li>
-           <a class="dropdown-item" href="{{ route('logout') }}"
+           <a class="dropdown-item" href="<?php echo e(route('logout')); ?>"
    onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
    <i class="fas fa-sign-out-alt me-2 text-danger"></i> Logout
 </a>
 
-<form id="logout-form" action="{{ route('logout') }}" method="POST" class="d-none">
-    @csrf
+<form id="logout-form" action="<?php echo e(route('logout')); ?>" method="POST" class="d-none">
+    <?php echo csrf_field(); ?>
 </form>
 
         </li>
@@ -222,8 +222,8 @@
             </div>
         </div>
 
-        {{-- Dynamic Page Content --}}
-        @yield('content')
+        
+        <?php echo $__env->yieldContent('content'); ?>
     </div>
 
 
@@ -244,7 +244,8 @@
 </script>
 
 <!-- Required for pushing scripts like Leaflet/map -->
-@stack('scripts')
+<?php echo $__env->yieldPushContent('scripts'); ?>
 
 </body>
 </html>
+<?php /**PATH K:\Laravel\security-master\resources\views\layouts\app.blade.php ENDPATH**/ ?>

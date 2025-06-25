@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Branch;
 use App\Models\Client;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
@@ -13,11 +14,15 @@ class BranchController extends Controller
     /**
      * Get all branches for a client
      */
-    public function index(Client $client)
+    public function index($client)
     {
+        return response()->json([
+            'success' => true,
+            'data' => $client
+        ]);
         try {
             $branches = $client->branches()->latest()->paginate(10);
-            
+
             return response()->json([
                 'success' => true,
                 'data' => $branches->items(),
@@ -36,39 +41,18 @@ class BranchController extends Controller
             ], 500);
         }
     }
-    
+
     /**
      * Get all branches for a client (for dropdowns)
      */
-    public function getBranchesByClient(Client $client)
+    public function getBranchesByClient($client)
     {
-        try {
-            $branches = $client->branches()->select([
-                'id',
-                'branch_name',
-                'manager_name',
-                'email',
-                'phone',
-                'city',
-                'country',
-                'latitude',
-                'longitude',
-                'address',
-                'state',
-                'zip'
-            ])->get();
-            
-            return response()->json([
+        $branches = Branch::where('user_id' , $client)->get();
+        return response()->json([
                 'success' => true,
                 'data' => $branches
             ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to load branches',
-                'error' => $e->getMessage()
-            ], 500);
-        }
+
     }
 
     /**
@@ -76,11 +60,10 @@ class BranchController extends Controller
      */
     public function store(Request $request)
     {
-        $validated = $request->validate([
-            'client_id' => 'required|exists:clients,id',
-            'branch_name' => 'required|string|max:255',
-            'manager_name' => 'required|string|max:255',
-            'email' => 'required|email|max:255',
+        $request->validate([
+            'user_id' => 'required|exists:users,id',
+            'email' => 'required|email',
+            'name' => 'required|string|max:255',
             'phone' => 'required|string|max:50',
             'address' => 'required|string|max:500',
             'city' => 'required|string|max:100',
@@ -92,20 +75,29 @@ class BranchController extends Controller
         ]);
 
         try {
-            DB::beginTransaction();
-            
-            $branch = Branch::create($validated);
-            
-            DB::commit();
-            
+
+            $branch = Branch::create([
+                'user_id' => $request->user_id,
+                'email' => $request->email,
+                'name' => $request->name,
+                'phone' => $request->phone,
+                'address' => $request->address,
+                'city' => $request->city,
+                'state' => $request->state,
+                'zip' => $request->zip,
+                'country' => $request->country,
+                'latitude' => $request->latitude,
+                'longitude' => $request->longitude,
+            ]);
+
             return response()->json([
                 'success' => true,
                 'message' => 'Branch created successfully',
                 'data' => $branch
             ]);
-            
         } catch (\Exception $e) {
             DB::rollBack();
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to create branch',
@@ -117,7 +109,7 @@ class BranchController extends Controller
     /**
      * Display the specified branch.
      */
-    public function show(Client $client, Branch $branch)
+    public function show(User $client, Branch $branch)
     {
         return response()->json([
             'success' => true,
@@ -128,11 +120,10 @@ class BranchController extends Controller
     /**
      * Update the specified branch in storage.
      */
-    public function update(Request $request, Client $client, Branch $branch)
+    public function update(Request $request, User $client, Branch $branch)
     {
         $validated = $request->validate([
-            'branch_name' => 'required|string|max:255',
-            'manager_name' => 'required|string|max:255',
+            'name' => 'required|string|max:255',
             'email' => 'required|email|max:255',
             'phone' => 'required|string|max:50',
             'address' => 'required|string|max:500',
@@ -146,17 +137,16 @@ class BranchController extends Controller
 
         try {
             DB::beginTransaction();
-            
+
             $branch->update($validated);
-            
+
             DB::commit();
-            
+
             return response()->json([
                 'success' => true,
                 'message' => 'Branch updated successfully',
                 'data' => $branch
             ]);
-            
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
@@ -170,20 +160,19 @@ class BranchController extends Controller
     /**
      * Remove the specified branch from storage.
      */
-    public function destroy(Client $client, Branch $branch)
+    public function destroy(User $client, Branch $branch)
     {
         try {
             DB::beginTransaction();
-            
+
             $branch->delete();
-            
+
             DB::commit();
-            
+
             return response()->json([
                 'success' => true,
                 'message' => 'Branch deleted successfully'
             ]);
-            
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([

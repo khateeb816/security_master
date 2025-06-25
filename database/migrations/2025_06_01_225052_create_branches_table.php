@@ -13,10 +13,9 @@ return new class extends Migration
     {
         Schema::create('branches', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('client_id')->constrained()->onDelete('cascade');
-            $table->string('branch_name');
-            $table->string('manager_name')->nullable();
-            $table->string('email')->nullable();
+            $table->foreignId('user_id')->constrained()->onDelete('cascade'); //client
+            $table->string('name');
+            $table->string('email');
             $table->string('phone')->nullable();
             $table->text('address')->nullable();
             $table->string('city')->nullable();
@@ -27,9 +26,9 @@ return new class extends Migration
             $table->decimal('longitude', 11, 8)->nullable();
             $table->softDeletes();
             $table->timestamps();
-            
+
             // Add index for better performance on frequently queried columns
-            $table->index('client_id');
+            $table->index('user_id');
         });
     }
 

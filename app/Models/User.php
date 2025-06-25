@@ -21,65 +21,21 @@ class User extends Authenticatable
     protected $fillable = [
         'name',
         'email',
-        'phone',
-        'cnic',
-        'nfc_uid',
-        'designation',
-        'role',
-        'client_id',
-        'latitude',
-        'longitude',
-        'status',
         'password',
+        'phone',
+        'address',
+        'city',
+        'state',
+        'zip',
+        'country',
+        'language',
+        'cnic',
+        'notes',
+        'nfc_uid',
+        'role',
+        'status',
     ];
-    
-    /**
-     * The attributes that should be cast.
-     *
-     * @var array<string, string>
-     */
-    protected $casts = [
-        'email_verified_at' => 'datetime',
-        'password' => 'hashed',
-        'latitude' => 'float',
-        'longitude' => 'float',
-    ];
-    
-    /**
-     * Get the client that owns the user.
-     */
-    /**
-     * Get the branch that the user belongs to.
-     */
-    public function branch()
-    {
-        return $this->belongsTo(Branch::class, 'branch_id');
-    }
 
-    /**
-     * Get the client that owns the user.
-     */
-    public function client()
-    {
-        return $this->belongsTo(\App\Models\Client::class);
-    }
-    
-    /**
-     * Find a branch that matches the user's coordinates
-     *
-     * @return \App\Models\Branch|null
-     */
-    public function findMatchingBranch()
-    {
-        if (!$this->client_id || !$this->latitude || !$this->longitude) {
-            return null;
-        }
-        
-        return \App\Models\Branch::where('client_id', $this->client_id)
-            ->where('latitude', $this->latitude)
-            ->where('longitude', $this->longitude)
-            ->first();
-    }
 
     /**
      * The attributes that should be hidden for serialization.
@@ -102,5 +58,10 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    public function branches()
+    {
+        return $this->hasMany(Branch::class);
     }
 }

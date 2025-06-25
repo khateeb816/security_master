@@ -15,9 +15,8 @@ class Branch extends Model
      * @var array<int, string>
      */
     protected $fillable = [
-        'client_id',
-        'branch_name',
-        'manager_name',
+        'user_id',
+        'name',
         'email',
         'phone',
         'address',
@@ -43,10 +42,7 @@ class Branch extends Model
     /**
      * Get the client that owns the branch.
      */
-    public function client()
-    {
-        return $this->belongsTo(Client::class);
-    }
+
 
     /**
      * Get the checkpoints for the branch.
@@ -54,5 +50,8 @@ class Branch extends Model
     public function checkpoints()
     {
         return $this->hasMany(Checkpoint::class);
+    }
+    public function user(){
+        return $this->belongsTo(User::class);
     }
 }

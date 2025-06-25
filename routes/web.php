@@ -46,21 +46,6 @@ Route::get('/login', function () {
     return view('login');
 })->name('login');
 
-// Debug route to check database structure
-Route::get('/debug/clients', function () {
-    if (!app()->environment('local')) {
-        abort(404);
-    }
-
-    $columns = Schema::getColumnListing('clients');
-    $client = \App\Models\Client::first();
-
-    return [
-        'columns' => $columns,
-        'first_client' => $client ? $client->toArray() : null,
-        'migrations' => DB::table('migrations')->get(),
-    ];
-});
 
 // POST: Fake login submission
 Route::post('/login', function () {
@@ -124,6 +109,17 @@ Route::prefix('clients')->name('clients.')->group(function () {
     });
 });
 
+//Guards Management Routes
+Route::prefix('guards')->name('guards.')->group(function () {
+    Route::get('/', [\App\Http\Controllers\GuardController::class, 'index'])->name('index');
+    Route::post('/', [\App\Http\Controllers\GuardController::class, 'store'])->name('store');
+    Route::get('/create', [\App\Http\Controllers\GuardController::class, 'create'])->name('create');
+    Route::get('/{client}', [\App\Http\Controllers\GuardController::class, 'show'])->name('show');
+    Route::put('/{client}', [\App\Http\Controllers\GuardController::class, 'update'])->name('update');
+    Route::delete('/{client}', [\App\Http\Controllers\GuardController::class, 'destroy'])->name('destroy');
+    Route::get('/{client}/edit', [\App\Http\Controllers\GuardController::class, 'edit'])->name('edit');
+
+});
 // Test route for serving JavaScript file
 Route::get('/js/users.js', function () {
     $path = public_path('js/users.js');

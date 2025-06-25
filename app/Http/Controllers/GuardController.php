@@ -7,15 +7,15 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
-class ClientController extends Controller
+class GuardController extends Controller
 {
-    public function index()
+     public function index()
     {
-        $clients = User::where("role", "client")->paginate(10);
-        return view('clients.index', compact('clients'));
+        $guards = User::where("role", "guard")->paginate(10);
+        return view('guards.index', compact('guards'));
     }
 
-   public function store(StoreClientRequest $request)
+    public function store(StoreClientRequest $request)
 {
     // Validate required fields (without unique rule for now)
     $request->validate([
@@ -46,16 +46,16 @@ class ClientController extends Controller
         'cnic' => $request->cnic,
         'nfc_uid' => $request->nfc_uid,
         'notes' => $request->notes,
-        'role' => 'client'
+        'role' => 'guard'
     ]);
 
-    return redirect()->back()->with('success', 'Client Added Successfully');
+    return redirect()->back()->with('success', 'Guard Added Successfully');
 }
 
     public function update(Request $request)
     {
-        $client = User::find($request->id);
-        $client->update([
+        $guard = User::find($request->id);
+        $guard->update([
             'name' => $request->name,
             'email' => $request->email,
             'phone' => $request->phone,
@@ -70,19 +70,19 @@ class ClientController extends Controller
             'nfc_uid' => $request->nfc_uid,
             'notes' => $request->notes,
         ]);
-        return redirect()->back()->with("success", "Client Updated");
+        return redirect()->back()->with("success", "Guard Updated Successfully");
     }
 
     public function destroy(Request $request)
     {
-        $client = User::find($request->id);
+        $guard = User::find($request->id);
 
-        if (!$client) {
-            return redirect()->back()->with('error', 'Client not found');
+        if (!$guard) {
+            return redirect()->back()->with('error', 'Guard not found');
         }
 
-        $client->delete();
+        $guard->delete();
 
-        return redirect()->back()->with('success', 'Client deleted');
+        return redirect()->back()->with('success', 'Guard deleted Successfully');
     }
 }

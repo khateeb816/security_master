@@ -17,7 +17,6 @@ class UserController extends Controller
     public function index()
     {
         $users = User::with(['client', 'client.branches'])->latest()->paginate(10);
-        $clients = \App\Models\Client::with('branches')->orderBy('name')->get();
         return view('users_fixed', compact('users', 'clients'));
     }
 
@@ -29,9 +28,9 @@ class UserController extends Controller
         try {
             $validated = $request->validated();
             $validated['password'] = Hash::make($validated['password']);
-            
+
             $user = User::create($validated);
-            
+
             if ($request->wantsJson()) {
                 return response()->json([
                     'success' => true,
@@ -40,10 +39,10 @@ class UserController extends Controller
                     'user' => $user
                 ]);
             }
-            
+
             return redirect()->route('users.index')
                 ->with('success', 'User created successfully');
-                
+
         } catch (\Exception $e) {
             if ($request->wantsJson()) {
                 return response()->json([
@@ -51,7 +50,7 @@ class UserController extends Controller
                     'message' => 'Error creating user: ' . $e->getMessage()
                 ], 500);
             }
-            
+
             return back()->withInput()
                 ->with('error', 'Error creating user: ' . $e->getMessage());
         }
@@ -107,7 +106,7 @@ class UserController extends Controller
                 ->where('latitude', $validated['latitude'])
                 ->where('longitude', $validated['longitude'])
                 ->first();
-                
+
             if ($matchingBranch) {
                 $validated['branch_id'] = $matchingBranch->id;
             }
@@ -130,7 +129,7 @@ class UserController extends Controller
     {
         try {
             $user->delete();
-            
+
             if ($request->wantsJson()) {
                 return response()->json([
                     'success' => true,
@@ -138,10 +137,10 @@ class UserController extends Controller
                     'redirect' => route('users.index')
                 ]);
             }
-            
+
             return redirect()->route('users.index')
                 ->with('success', 'User deleted successfully');
-                
+
         } catch (\Exception $e) {
             if ($request->wantsJson()) {
                 return response()->json([
@@ -149,11 +148,11 @@ class UserController extends Controller
                     'message' => 'Error deleting user: ' . $e->getMessage()
                 ], 500);
             }
-            
+
             return back()->with('error', 'Error deleting user: ' . $e->getMessage());
         }
     }
-    
+
     /**
      * Update only the branch ID for a user
      */
@@ -162,18 +161,18 @@ class UserController extends Controller
         $validated = $request->validate([
             'branch_id' => 'required|exists:branches,id'
         ]);
-        
+
         $user->update([
             'branch_id' => $validated['branch_id']
         ]);
-        
+
         return response()->json([
             'success' => true,
             'message' => 'User branch updated successfully',
             'user' => $user->load(['client', 'branch'])
         ]);
     }
-    
+
     /**
      * Get user details for editing.
      */
@@ -181,7 +180,7 @@ class UserController extends Controller
     {
         $user->load(['client', 'branch', 'client.branches']);
         $matchingBranch = $user->findMatchingBranch();
-        
+
         return response()->json([
             'success' => true,
             'user' => $user,

@@ -17,7 +17,7 @@
 
     <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-    
+
     <!-- Select2 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
     <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
@@ -113,20 +113,21 @@
         </div>
         <a href="<?php echo e(route('dashboard')); ?>" class="<?php echo e(request()->routeIs('dashboard') ? 'active' : ''); ?>"><i class="fas fa-chart-line me-2"></i> Dashboard</a>
         <a href="<?php echo e(route('clients.index')); ?>" class="<?php echo e(request()->routeIs('clients.index') ? 'active' : ''); ?>"><i class="fas fa-building me-2"></i> Add Clients</a>
+        <a href="<?php echo e(route('guards.index')); ?>" class="<?php echo e(request()->routeIs('guards.index') ? 'active' : ''); ?>"><i class="fas fa-user-shield me-2"></i> Add Guards</a>
         <?php
-            $firstClient = \App\Models\Client::first();
+            $firstClient = \App\Models\User::where('role' , 'client')->first();
             $firstBranch = $firstClient ? $firstClient->branches()->first() : null;
-            $checkpointUrl = $firstClient && $firstBranch 
+            $checkpointUrl = $firstClient && $firstBranch
                 ? route('clients.branches.checkpoints.index', ['client' => $firstClient->id, 'branch' => $firstBranch->id])
                 : '#';
-            
+
             // Debug info - can be removed later
             // dd(route('clients.branches.checkpoints.index', ['client' => $firstClient->id, 'branch' => $firstBranch->id]));
         ?>
         <a href="<?php echo e($checkpointUrl); ?>" class="<?php echo e(request()->routeIs('clients.branches.checkpoints.*') ? 'active' : ''); ?>" id="checkpoints-nav-link">
             <i class="fas fa-map-marker-alt me-2"></i> Checkpoints
         </a>
-        
+
         <?php $__env->startPush('scripts'); ?>
         <script>
             document.addEventListener('DOMContentLoaded', function() {

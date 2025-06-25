@@ -1,12 +1,11 @@
-@extends('layouts.app')
-
-@section('content')
-@if(session('success'))
+<?php $__env->startSection('content'); ?>
+<?php if(session('success')): ?>
     <div class="alert alert-success alert-dismissible fade show" role="alert">
-        {{ session('success') }}
+        <?php echo e(session('success')); ?>
+
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>
-@endif
+<?php endif; ?>
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h4 class="fw-semibold mb-0">Client Companies</h4>
@@ -31,50 +30,51 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @forelse($clients as $index => $client)
+                        <?php $__empty_1 = true; $__currentLoopData = $clients; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $index => $client): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
                         <tr>
-                            <td>{{ $loop->iteration }}</td>
-                            <td>{{ $client->name }}</td>
-                            <td>{{ $client->email }}</td>
-                            <td>{{ $client->phone ?? 'N/A' }}</td>
-                            <td>{{ $client->city ?? 'N/A' }}</td>
-                            <td>{{ $client->country ?? 'N/A' }}</td>
+                            <td><?php echo e($loop->iteration); ?></td>
+                            <td><?php echo e($client->name); ?></td>
+                            <td><?php echo e($client->email); ?></td>
+                            <td><?php echo e($client->phone ?? 'N/A'); ?></td>
+                            <td><?php echo e($client->city ?? 'N/A'); ?></td>
+                            <td><?php echo e($client->country ?? 'N/A'); ?></td>
                             <td>
                                 <div class="d-flex gap-1" role="group">
                                     <button class="btn btn-warning edit-client-btn"
                                             data-bs-toggle="modal"
                                             data-bs-target="#editClientModal"
-                                            data-id="{{ $client->id }}"
-                                            data-name="{{ $client->name }}"
-                                            data-email="{{ $client->email }}"
-                                            data-phone="{{ $client->phone }}"
-                                            data-address="{{ $client->address }}"
-                                            data-city="{{ $client->city }}"
-                                            data-state="{{ $client->state }}"
-                                            data-postal-code="{{ $client->zip }}"
-                                            data-country="{{ $client->country }}"
-                                            data-status="{{ $client->status }}"
-                                            data-language="{{ $client->language }}"
-                                            data-nfc-uid="{{ $client->nfc_uid}}"
-                                            data-cnic="{{ $client->cnic }}"
-                                            data-notes="{{ $client->notes }}"
+                                            data-id="<?php echo e($client->id); ?>"
+                                            data-name="<?php echo e($client->name); ?>"
+                                            data-contact-person="<?php echo e($client->contact_person); ?>"
+                                            data-email="<?php echo e($client->email); ?>"
+                                            data-phone="<?php echo e($client->phone); ?>"
+                                            data-address="<?php echo e($client->address); ?>"
+                                            data-city="<?php echo e($client->city); ?>"
+                                            data-state="<?php echo e($client->state); ?>"
+                                            data-postal-code="<?php echo e($client->zip); ?>"
+                                            data-country="<?php echo e($client->country); ?>"
+                                            data-status="<?php echo e($client->status); ?>"
+                                            data-language="<?php echo e($client->language); ?>"
+                                            data-nfc-uid="<?php echo e($client->nfc_uid); ?>"
+                                            data-cnic="<?php echo e($client->cnic); ?>"
+                                            data-notes="<?php echo e($client->notes); ?>"
                                             title="Edit">
                                         <i class="fas fa-edit"></i>
                                     </button>
                                     <button class="btn btn-info ms-1"
                                             data-bs-toggle="modal"
                                             data-bs-target="#addBranchModal"
-                                            data-company="{{ $client->name }}"
-                                            data-company-name="{{ $client->name }}"
-                                            data-company-id="{{ $client->id }}"
+                                            data-company="<?php echo e($client->name); ?>"
+                                            data-company-name="<?php echo e($client->name); ?>"
+                                            data-company-id="<?php echo e($client->id); ?>"
                                             onclick="setBranchCompany(this)"
                                             title="Manage Branches">
                                         <i class="fas fa-code-branch"></i>
                                     </button>
-                                    <form action="{{ route('clients.destroy', $client->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this client?');">
-                                        @csrf
-                                        @method('DELETE')
-                                        <input type="hidden" name="id" id="id" value="{{ $client->id }}">
+                                    <form action="<?php echo e(route('clients.destroy', $client->id)); ?>" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this client?');">
+                                        <?php echo csrf_field(); ?>
+                                        <?php echo method_field('DELETE'); ?>
+                                        <input type="hidden" name="id" id="id" value="<?php echo e($client->id); ?>">
                                         <button type="submit" class="btn btn-danger ms-1" title="Delete">
                                             <i class="fas fa-trash"></i>
                                         </button>
@@ -82,11 +82,11 @@
                                 </div>
                                 </button>
                             </td>
-                        @empty
+                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                         <tr>
                             <td colspan="8" class="text-center">No clients found</td>
                         </tr>
-                        @endforelse
+                        <?php endif; ?>
                     </tbody>
                 </table>
             </div>
@@ -110,7 +110,7 @@
                     </div>
                     <div class="card-body">
                         <form id="addBranchForm" method="POST" action="" class="needs-validation" novalidate>
-                            @csrf
+                            <?php echo csrf_field(); ?>
                             <input type="hidden" id="branch_company_id" name="user_id">
                             <div class="row g-3">
                                 <div class="col-md-6">
@@ -222,9 +222,9 @@
 <!-- 🟩 Add Client Modal -->
 <div class="modal fade" id="addClientModal" tabindex="-1" aria-labelledby="addClientModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
-        <form id="addClientForm" class="modal-content" method="POST" action="{{ route('clients.store') }}">
-            @csrf
-            @method('POST')
+        <form id="addClientForm" class="modal-content" method="POST" action="<?php echo e(route('clients.store')); ?>">
+            <?php echo csrf_field(); ?>
+            <?php echo method_field('POST'); ?>
             <div class="modal-header bg-dark text-white">
                 <h5 class="modal-title" id="addClientModalLabel"><i class="fas fa-plus me-1"></i> Add New Client</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
@@ -315,8 +315,8 @@
 <div class="modal fade" id="editClientModal" tabindex="-1" aria-labelledby="editClientModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <form id="editClientForm" class="modal-content" method="POST">
-            @csrf
-            @method('PUT')
+            <?php echo csrf_field(); ?>
+            <?php echo method_field('PUT'); ?>
             <div class="modal-header bg-primary text-white">
                 <h5 class="modal-title" id="editClientModalLabel"><i class="fas fa-edit me-1"></i> Edit Client</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
@@ -403,9 +403,9 @@
         </form>
     </div>
 </div>
-@endsection
+<?php $__env->stopSection(); ?>
 
-@push('scripts')
+<?php $__env->startPush('scripts'); ?>
 <script>
 // Helper function to escape HTML to prevent XSS
 function escapeHtml(unsafe) {
@@ -429,16 +429,15 @@ function fillEditForm(button) {
     // Set form fields based on data attributes
     const fields = [
         'id', 'name', 'email', 'phone', 'address',
-        'city', 'state', 'postal_code', 'country', 'status', 'language',
-        'nfc_uid', 'cnic'
+        'city', 'state', 'zip', 'country', 'status', 'language',
+        'nfc_uid', 'cnic', 'postal_code'
     ];
 
     console.log('Setting fields:', fields);
 
     // Handle regular fields and select elements
     fields.forEach(field => {
-        // Special mapping for postal_code (which comes from data-postal-code, value = $client->zip)
-        let dataAttr = `data-${field.replace(/_/g, '-')}`;
+        const dataAttr = `data-${field.replace(/_/g, '-')}`;
         let value = button.getAttribute(dataAttr);
 
         // Handle null/undefined values
@@ -450,25 +449,62 @@ function fillEditForm(button) {
 
         if (element) {
             if (element.tagName === 'SELECT') {
+                // For select elements, find and select the option
                 const option = Array.from(element.options).find(
                     opt => opt.value === value
                 );
+                // console.log(`Select ${field} options:`, Array.from(element.options).map(o => o.value), 'Selected:`, value);
                 if (option) {
                     option.selected = true;
+                    console.log(`Set select ${field} to:`, option.value);
                 } else if (element.multiple) {
+                    // Handle multiple select if needed
                     const values = value ? value.split(',') : [];
                     Array.from(element.options).forEach(opt => {
                         opt.selected = values.includes(opt.value);
                     });
                 }
             } else if (element.type === 'checkbox') {
+                // For checkboxes
                 element.checked = value === '1' || value === 'true' || value === true;
+                console.log(`Set checkbox ${field} to:`, element.checked);
             } else {
+                // For input/textarea elements
                 element.value = value || '';
+                console.log(`Set input ${field} to:`, value);
             }
         }
     });
+
+    // Handle checkboxes separately for better reliability
+    const checkboxes = [
+        'incident_report_email',
+        'mobile_form_email'
+    ];
+
+    checkboxes.forEach(field => {
+        const dataAttr = `data-${field.replace(/_/g, '-')}`;
+        const value = button.getAttribute(dataAttr);
+        const element = document.getElementById(`edit_${field}`);
+
+        console.log(`Checkbox ${field}, Data Attribute: ${dataAttr}, Value: ${value}, Element:`, element);
+
+        if (element) {
+            const isChecked = value === '1' || value === 'true' || value === true;
+            element.checked = isChecked;
+            console.log(`Set checkbox ${field} to:`, isChecked);
+        }
+    });
+
+    // Debug: Log all data attributes
+    console.log('All data attributes:');
+    Array.from(button.attributes).forEach(attr => {
+        if (attr.name.startsWith('data-')) {
+            console.log(`${attr.name}: ${attr.value}`);
+        }
+    });
 }
+
 function setBranchCompany(button) {
     try {
         const companyId = button.getAttribute('data-company-id');
@@ -687,13 +723,34 @@ function fillEditForm(buttonData) {
 
     // Fields to populate
     const fields = [
-        'id', 'name', 'email', 'phone', 'address',
+        'id', 'name', 'contact_person', 'email', 'phone', 'address',
         'city', 'state', 'postal_code', 'country', 'status', 'language',
-        'nfc_uid', 'cnic', 'notes', 
+        'arc_id', 'additional_recipients', 'notes', 'incident_report_email', 'mobile_form_email'
     ];
+
+    // Special handling for checkboxes
+    const checkboxFields = ['incident_report_email', 'mobile_form_email'];
+
+    // Handle checkboxes first
+    checkboxFields.forEach(field => {
+        const element = document.getElementById(`edit_${field}`);
+        if (element) {
+            // Convert various truthy values to boolean
+            const value = buttonData[field];
+            const isChecked = value === '1' || value === 1 || value === 'true' || value === true || value === 'on';
+
+            console.log(`Setting checkbox ${field} to:`, isChecked, 'from value:', value);
+            element.checked = isChecked;
+
+            // Also set the value to '1' or '0' for form submission
+            element.value = isChecked ? '1' : '0';
+        }
+    });
 
     // Handle regular fields
     fields.forEach(field => {
+        // Skip checkboxes as we've already handled them
+        if (checkboxFields.includes(field)) return;
 
         const value = buttonData[field] || '';
         const element = document.getElementById(`edit_${field}`);
@@ -911,7 +968,7 @@ function setBranchCompany(button) {
     // Reset form and validation
     const form = document.getElementById('addBranchForm');
     form.reset();
-    form.action = '{{ route("branches.store") }}';
+    form.action = '<?php echo e(route("branches.store")); ?>';
     form.querySelector('input[name="_method"]')?.remove();
     form.classList.remove('was-validated');
 
@@ -1273,4 +1330,6 @@ function showToast(type, message) {
     });
 })();
 </script>
-@endpush
+<?php $__env->stopPush(); ?>
+
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH K:\Laravel\security-master\resources\views\clients\index.blade.php ENDPATH**/ ?>

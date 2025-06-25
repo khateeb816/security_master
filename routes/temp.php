@@ -6,8 +6,8 @@ use Illuminate\Support\Facades\DB;
 
 Route::get('/temp/check-db', function () {
     $columns = Schema::getColumnListing('clients');
-    $client = \App\Models\Client::first();
-    
+    $client = \App\Models\User::where('role' , 'cleint')->first();
+
     return [
         'columns' => $columns,
         'first_client' => $client ? $client->toArray() : null,
