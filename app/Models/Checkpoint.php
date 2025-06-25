@@ -17,20 +17,21 @@ class Checkpoint extends Model
      */
     protected $fillable = [
         'branch_id',
+        'user_id',
+        'client_id',
         'name',
-        'point_code',
         'description',
-        'qr_code',
         'nfc_tag',
         'is_active',
         'latitude',
+        'date_to_check',
+        'time_to_check',
         'longitude',
-        'geofence_radius',
-        'geofence_enabled',
-        'site',
-        'client_site_code',
-        'checkpoint_code',
-        'notes'
+        'radius',
+        'priority',
+        'checked_time',
+        'media',
+        'status',
     ];
 
     /**
@@ -40,10 +41,13 @@ class Checkpoint extends Model
      */
     protected $casts = [
         'is_active' => 'boolean',
-        'geofence_enabled' => 'boolean',
-        'geofence_radius' => 'integer',
+        'radius' => 'integer',
         'latitude' => 'float',
-        'longitude' => 'float'
+        'longitude' => 'float',
+        'priority' => 'integer',
+        'checked_time' => 'datetime',
+        'media' => 'json',
+        'status' => 'string',
     ];
 
     /**

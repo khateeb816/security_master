@@ -1,11 +1,5 @@
 <?php $__env->startSection('content'); ?>
-<?php if(session('success')): ?>
-    <div class="alert alert-success alert-dismissible fade show" role="alert">
-        <?php echo e(session('success')); ?>
 
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
-<?php endif; ?>
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h4 class="fw-semibold mb-0">Client Companies</h4>
@@ -45,7 +39,6 @@
                                             data-bs-target="#editClientModal"
                                             data-id="<?php echo e($client->id); ?>"
                                             data-name="<?php echo e($client->name); ?>"
-                                            data-contact-person="<?php echo e($client->contact_person); ?>"
                                             data-email="<?php echo e($client->email); ?>"
                                             data-phone="<?php echo e($client->phone); ?>"
                                             data-address="<?php echo e($client->address); ?>"
@@ -429,15 +422,16 @@ function fillEditForm(button) {
     // Set form fields based on data attributes
     const fields = [
         'id', 'name', 'email', 'phone', 'address',
-        'city', 'state', 'zip', 'country', 'status', 'language',
-        'nfc_uid', 'cnic', 'postal_code'
+        'city', 'state', 'postal_code', 'country', 'status', 'language',
+        'nfc_uid', 'cnic'
     ];
 
     console.log('Setting fields:', fields);
 
     // Handle regular fields and select elements
     fields.forEach(field => {
-        const dataAttr = `data-${field.replace(/_/g, '-')}`;
+        // Special mapping for postal_code (which comes from data-postal-code, value = $client->zip)
+        let dataAttr = `data-${field.replace(/_/g, '-')}`;
         let value = button.getAttribute(dataAttr);
 
         // Handle null/undefined values
@@ -449,62 +443,25 @@ function fillEditForm(button) {
 
         if (element) {
             if (element.tagName === 'SELECT') {
-                // For select elements, find and select the option
                 const option = Array.from(element.options).find(
                     opt => opt.value === value
                 );
-                // console.log(`Select ${field} options:`, Array.from(element.options).map(o => o.value), 'Selected:`, value);
                 if (option) {
                     option.selected = true;
-                    console.log(`Set select ${field} to:`, option.value);
                 } else if (element.multiple) {
-                    // Handle multiple select if needed
                     const values = value ? value.split(',') : [];
                     Array.from(element.options).forEach(opt => {
                         opt.selected = values.includes(opt.value);
                     });
                 }
             } else if (element.type === 'checkbox') {
-                // For checkboxes
                 element.checked = value === '1' || value === 'true' || value === true;
-                console.log(`Set checkbox ${field} to:`, element.checked);
             } else {
-                // For input/textarea elements
                 element.value = value || '';
-                console.log(`Set input ${field} to:`, value);
             }
         }
     });
-
-    // Handle checkboxes separately for better reliability
-    const checkboxes = [
-        'incident_report_email',
-        'mobile_form_email'
-    ];
-
-    checkboxes.forEach(field => {
-        const dataAttr = `data-${field.replace(/_/g, '-')}`;
-        const value = button.getAttribute(dataAttr);
-        const element = document.getElementById(`edit_${field}`);
-
-        console.log(`Checkbox ${field}, Data Attribute: ${dataAttr}, Value: ${value}, Element:`, element);
-
-        if (element) {
-            const isChecked = value === '1' || value === 'true' || value === true;
-            element.checked = isChecked;
-            console.log(`Set checkbox ${field} to:`, isChecked);
-        }
-    });
-
-    // Debug: Log all data attributes
-    console.log('All data attributes:');
-    Array.from(button.attributes).forEach(attr => {
-        if (attr.name.startsWith('data-')) {
-            console.log(`${attr.name}: ${attr.value}`);
-        }
-    });
 }
-
 function setBranchCompany(button) {
     try {
         const companyId = button.getAttribute('data-company-id');
@@ -723,34 +680,13 @@ function fillEditForm(buttonData) {
 
     // Fields to populate
     const fields = [
-        'id', 'name', 'contact_person', 'email', 'phone', 'address',
+        'id', 'name', 'email', 'phone', 'address',
         'city', 'state', 'postal_code', 'country', 'status', 'language',
-        'arc_id', 'additional_recipients', 'notes', 'incident_report_email', 'mobile_form_email'
+        'nfc_uid', 'cnic', 'notes', 
     ];
-
-    // Special handling for checkboxes
-    const checkboxFields = ['incident_report_email', 'mobile_form_email'];
-
-    // Handle checkboxes first
-    checkboxFields.forEach(field => {
-        const element = document.getElementById(`edit_${field}`);
-        if (element) {
-            // Convert various truthy values to boolean
-            const value = buttonData[field];
-            const isChecked = value === '1' || value === 1 || value === 'true' || value === true || value === 'on';
-
-            console.log(`Setting checkbox ${field} to:`, isChecked, 'from value:', value);
-            element.checked = isChecked;
-
-            // Also set the value to '1' or '0' for form submission
-            element.value = isChecked ? '1' : '0';
-        }
-    });
 
     // Handle regular fields
     fields.forEach(field => {
-        // Skip checkboxes as we've already handled them
-        if (checkboxFields.includes(field)) return;
 
         const value = buttonData[field] || '';
         const element = document.getElementById(`edit_${field}`);

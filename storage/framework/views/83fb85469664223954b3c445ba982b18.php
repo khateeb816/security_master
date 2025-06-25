@@ -188,7 +188,7 @@
                                         <option value="<?php echo e($branch->id); ?>" data-lat="<?php echo e($branch->latitude); ?>"
                                             data-lng="<?php echo e($branch->longitude); ?>"
                                             <?php echo e(request('branch_id') == $branch->id ? 'selected' : ''); ?>>
-                                            <?php echo e($branch->branch_name); ?>
+                                            <?php echo e($branch->name); ?>
 
                                         </option>
                                     <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
@@ -385,7 +385,7 @@
                             if (response.data && response.data.length > 0) {
                                 response.data.forEach(function(branch) {
                                     branchFilter.append(
-                                        `<option value="${branch.id}">${branch.branch_name}</option>`
+                                        `<option value="${branch.id}" data-lat="${branch.latitude || ''}" data-lng="${branch.longitude || ''}">${branch.name}</option>`
                                     );
                                 });
                                 branchFilter.prop('disabled', false);
@@ -939,4 +939,4 @@
 
 <?php $__env->stopSection(); ?>
 
-<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH K:\Laravel\security-master\resources\views\checkpoints\index.blade.php ENDPATH**/ ?>
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH K:\Laravel\security-master\resources\views/checkpoints/index.blade.php ENDPATH**/ ?>

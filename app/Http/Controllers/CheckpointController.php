@@ -2,9 +2,9 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Client;
 use App\Models\Branch;
 use App\Models\Checkpoint;
+use App\Models\Client;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -22,11 +22,12 @@ class CheckpointController extends Controller
      */
     public function index($clientId = null, $branchId = null)
     {
-        $clients = User::where('role' , 'client')->orderBy('name')->get();
+        $clients = User::where('role', 'client')->orderBy('name')->get();
 
         // If no clients exist, redirect to clients page
         if ($clients->isEmpty()) {
-            return redirect()->route('clients.index')
+            return redirect()
+                ->route('clients.index')
                 ->with('warning', 'Please add a client and branch first before managing checkpoints.');
         }
 
@@ -43,14 +44,16 @@ class CheckpointController extends Controller
                     'branch_id' => $firstBranch->id
                 ]);
             } else {
-                return redirect()->route('clients.index')
+                return redirect()
+                    ->route('clients.index')
                     ->with('warning', 'Please add a branch to the client before managing checkpoints.');
             }
         }
 
         // Get branches for the selected client
-        $branches = Branch::where('client_id', $clientId)
-            ->orderBy('branch_name')
+        $branches = Branch::select(['id', 'name'])
+            ->where('user_id', $clientId)
+            ->orderBy('name')
             ->get();
 
         // If no branch is selected, use the first one
@@ -71,6 +74,10 @@ class CheckpointController extends Controller
                 ->get()
             : collect();
 
+        $guards = User::where('role', 'guard')
+            ->orderBy('name')
+            ->get();
+
         // Return JSON response for AJAX requests
         if (request()->wantsJson()) {
             return response()->json($checkpoints);
@@ -81,8 +88,9 @@ class CheckpointController extends Controller
             'clients' => $clients,
             'branches' => $branches,
             'checkpoints' => $checkpoints,
-            'selectedClient' => (int)$clientId,
-            'selectedBranch' => $branchId ? (int)$branchId : null
+            'selectedClient' => (int) $clientId,
+            'selectedBranch' => $branchId ? (int) $branchId : null,
+            'guards' => $guards,
         ]);
     }
 
@@ -97,71 +105,64 @@ class CheckpointController extends Controller
     public function store(Request $request, $clientId, $branchId)
     {
         $validated = $request->validate([
+            'branch_id' => 'required|exists:branches,id',
+            'client_id' => 'required|exists:users,id',
+            'guard_id' => 'required|exists:users,id',
             'name' => 'required|string|max:255',
-            'point_code' => 'required|string|max:50',
+            'date_to_check' => 'required',
+            'time_to_check' => 'required',
             'description' => 'nullable|string',
             'nfc_tag' => [
                 'nullable',
                 'string',
                 Rule::unique('checkpoints', 'nfc_tag')->where(function ($query) use ($branchId) {
                     return $query->where('branch_id', $branchId);
-                })
+                })->ignore($request->input('checkpointId'))
             ],
             'latitude' => 'nullable|numeric|between:-90,90',
             'longitude' => 'nullable|numeric|between:-180,180',
-            'geofence_radius' => 'nullable|integer|min:0',
-            'geofence_enabled' => 'boolean',
-            'site' => 'nullable|string|max:255',
-            'client_site_code' => 'nullable|string|max:100',
-            'checkpoint_code' => 'nullable|string|max:100',
-            'notes' => 'nullable|string',
-            'is_active' => 'boolean'
+            'radius' => 'nullable|integer|min:0',
+            'is_active' => 'boolean',
+            'priority' => 'nullable|integer|min:0',
         ]);
 
         try {
             DB::beginTransaction();
-
+            // Use only $validated data, and set status here
             $checkpointData = array_merge($validated, [
-                'branch_id' => $branchId,
-                'qr_code' => 'CPT' . strtoupper(Str::random(8)),
-                'is_active' => $validated['is_active'] ?? true,
+                'user_id' => $validated['guard_id'],
+                'status' => 'pending',
             ]);
+            unset($checkpointData['guard_id']); // Not a DB column
+            $checkpoint = Checkpoint::create($checkpointData);
 
-            $checkpoint = new Checkpoint($checkpointData);
-
-            $checkpoint->save();
-
-            DB::commit();
-
-            if ($request->wantsJson()) {
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Checkpoint created successfully',
-                    'data' => $checkpoint->load('branch')
-                ], 201);
+            if (!$checkpoint) {
+                DB::rollBack();
+                \Log::error('Checkpoint creation failed', ['data' => $checkpointData]);
+                return back()->withInput()->with('error', 'Failed to add checkpoint. Please check your input and try again.');
             }
+            DB::commit();
 
             return redirect()
                 ->route('clients.branches.checkpoints.index', [
-                    'client' => $clientId,
-                    'branch' => $branchId
+                    'client' => $checkpoint->client_id,
+                    'branch' => $checkpoint->branch_id
                 ])
-                ->with('success', 'Checkpoint created successfully');
-
+                ->with('success', 'Checkpoint added successfully.');
         } catch (\Exception $e) {
             DB::rollBack();
 
             if ($request->wantsJson()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Failed to create checkpoint',
+                    'message' => 'Failed to save checkpoint',
                     'error' => $e->getMessage()
                 ], 500);
             }
 
             return back()
                 ->withInput()
-                ->with('error', 'Failed to create checkpoint: ' . $e->getMessage());
+                ->with('error', 'Failed to save checkpoint: ' . $e->getMessage());
         }
     }
 
@@ -192,7 +193,6 @@ class CheckpointController extends Controller
                 'client' => $checkpoint->branch->client,
                 'branch' => $checkpoint->branch
             ]);
-
         } catch (\Exception $e) {
             if (request()->wantsJson()) {
                 return response()->json([
@@ -221,7 +221,7 @@ class CheckpointController extends Controller
                 ->where('branch_id', $branchId)
                 ->findOrFail($checkpointId);
 
-            $clients = User::where('role' , 'client')->orderBy('company_name')->get();
+            $clients = User::where('role', 'client')->orderBy('company_name')->get();
             $branches = Branch::where('client_id', $clientId)->orderBy('branch_name')->get();
 
             return view('checkpoints.edit', [
@@ -230,7 +230,6 @@ class CheckpointController extends Controller
                 'branches' => $branches,
                 'client' => $checkpoint->branch->client
             ]);
-
         } catch (\Exception $e) {
             return back()->with('error', 'Failed to load edit form: ' . $e->getMessage());
         }
@@ -295,7 +294,6 @@ class CheckpointController extends Controller
                     'branch_id' => $branchId
                 ])
                 ->with('success', 'Checkpoint updated successfully');
-
         } catch (\Exception $e) {
             DB::rollBack();
 
@@ -348,7 +346,6 @@ class CheckpointController extends Controller
                     'branch_id' => $branchId
                 ])
                 ->with('success', 'Checkpoint deleted successfully');
-
         } catch (\Exception $e) {
             DB::rollBack();
 
@@ -391,7 +388,6 @@ class CheckpointController extends Controller
                     'client_id' => $clientId
                 ]
             ]);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,

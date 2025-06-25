@@ -1,12 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
-@if(session('success'))
-    <div class="alert alert-success alert-dismissible fade show" role="alert">
-        {{ session('success') }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
-@endif
+
 
 <!-- Toast container for dynamic notifications -->
 <div id="toastContainer" class="position-fixed bottom-0 end-0 p-3" style="z-index: 11"></div>

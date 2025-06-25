@@ -14,12 +14,13 @@ return new class extends Migration
         Schema::create('checkpoints', function (Blueprint $table) {
             $table->id();
             $table->foreignId('branch_id')->constrained()->onDelete('cascade');
+            $table->integer('user_id'); //guard
+            $table->integer('client_id'); //guard
             $table->string('name');
             $table->text('description')->nullable();
-            $table->string('user_id'); //guard
-            $table->date('date_to_check');
-            $table->time('time_to_check');
-            $table->time('checked_time')->nullable();
+            $table->string('date_to_check');
+            $table->string('time_to_check');
+            $table->string('checked_time')->nullable();
          $table->decimal('latitude', 10, 8)->nullable();
             $table->decimal('longitude', 11, 8)->nullable();
             $table->integer('radius');
