@@ -16,22 +16,12 @@ class BranchController extends Controller
      */
     public function index($client)
     {
-        return response()->json([
-            'success' => true,
-            'data' => $client
-        ]);
         try {
-            $branches = $client->branches()->latest()->paginate(10);
+            $branches = Branch::where('user_id', $client)->latest()->get();
 
             return response()->json([
                 'success' => true,
-                'data' => $branches->items(),
-                'pagination' => [
-                    'current_page' => $branches->currentPage(),
-                    'last_page' => $branches->lastPage(),
-                    'per_page' => $branches->perPage(),
-                    'total' => $branches->total(),
-                ]
+                'data' => $branches
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -47,12 +37,13 @@ class BranchController extends Controller
      */
     public function getBranchesByClient($client)
     {
-        $branches = Branch::where('user_id' , $client)->get();
+        $branches = Branch::where('user_id', $client)
+            ->select('id', 'name', 'latitude', 'longitude')
+            ->get();
         return response()->json([
-                'success' => true,
-                'data' => $branches
-            ]);
-
+            'success' => true,
+            'data' => $branches
+        ]);
     }
 
     /**

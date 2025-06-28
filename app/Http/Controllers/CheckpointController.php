@@ -8,8 +8,10 @@ use App\Models\Client;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use SimpleSoftwareIO\QrCode\Facades\QrCode;
 
 class CheckpointController extends Controller
 {
@@ -106,10 +108,10 @@ class CheckpointController extends Controller
     {
         $validated = $request->validate([
             'branch_id' => 'required|exists:branches,id',
-            'client_id' => 'required|exists:users,id',
+            'client_id' => 'required|integer',
             'guard_id' => 'required|exists:users,id',
             'name' => 'required|string|max:255',
-            'date_to_check' => 'required',
+            'date_to_check' => 'required|date',
             'time_to_check' => 'required',
             'description' => 'nullable|string',
             'nfc_tag' => [
@@ -117,7 +119,7 @@ class CheckpointController extends Controller
                 'string',
                 Rule::unique('checkpoints', 'nfc_tag')->where(function ($query) use ($branchId) {
                     return $query->where('branch_id', $branchId);
-                })->ignore($request->input('checkpointId'))
+                })
             ],
             'latitude' => 'nullable|numeric|between:-90,90',
             'longitude' => 'nullable|numeric|between:-180,180',
@@ -128,25 +130,47 @@ class CheckpointController extends Controller
 
         try {
             DB::beginTransaction();
-            // Use only $validated data, and set status here
-            $checkpointData = array_merge($validated, [
+
+            // Prepare checkpoint data
+            $checkpointData = [
+                'branch_id' => $validated['branch_id'],
                 'user_id' => $validated['guard_id'],
+                'client_id' => $validated['client_id'],
+                'name' => $validated['name'],
+                'description' => $validated['description'] ?? null,
+                'date_to_check' => $validated['date_to_check'],
+                'time_to_check' => $validated['time_to_check'],
+                'latitude' => $validated['latitude'] ?? null,
+                'longitude' => $validated['longitude'] ?? null,
+                'radius' => $validated['radius'] ?? 50, // Default radius
                 'status' => 'pending',
-            ]);
-            unset($checkpointData['guard_id']); // Not a DB column
+                'media' => json_encode([]), // Empty media array
+                'priority' => $validated['priority'] ?? 0,
+                'nfc_tag' => $validated['nfc_tag'] ?? null,
+                'is_active' => $validated['is_active'] ?? true,
+            ];
+
             $checkpoint = Checkpoint::create($checkpointData);
 
             if (!$checkpoint) {
                 DB::rollBack();
-                \Log::error('Checkpoint creation failed', ['data' => $checkpointData]);
+                Log::error('Checkpoint creation failed', ['data' => $checkpointData]);
                 return back()->withInput()->with('error', 'Failed to add checkpoint. Please check your input and try again.');
             }
             DB::commit();
 
+            if ($request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Checkpoint added successfully',
+                    'data' => $checkpoint->load('branch')
+                ]);
+            }
+
             return redirect()
                 ->route('clients.branches.checkpoints.index', [
-                    'client' => $checkpoint->client_id,
-                    'branch' => $checkpoint->branch_id
+                    'client' => $clientId,
+                    'branch' => $branchId
                 ])
                 ->with('success', 'Checkpoint added successfully.');
         } catch (\Exception $e) {
@@ -221,13 +245,15 @@ class CheckpointController extends Controller
                 ->where('branch_id', $branchId)
                 ->findOrFail($checkpointId);
 
-            $clients = User::where('role', 'client')->orderBy('company_name')->get();
-            $branches = Branch::where('client_id', $clientId)->orderBy('branch_name')->get();
+            $clients = User::where('role', 'client')->orderBy('name')->get();
+            $branches = Branch::where('user_id', $clientId)->orderBy('name')->get();
+            $guards = User::where('role', 'guard')->orderBy('name')->get();
 
             return view('checkpoints.edit', [
                 'checkpoint' => $checkpoint,
                 'clients' => $clients,
                 'branches' => $branches,
+                'guards' => $guards,
                 'client' => $checkpoint->branch->client
             ]);
         } catch (\Exception $e) {
@@ -248,8 +274,9 @@ class CheckpointController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'point_code' => 'required|string|max:50',
             'description' => 'nullable|string',
+            'date_to_check' => 'required|date',
+            'time_to_check' => 'required',
             'nfc_tag' => [
                 'nullable',
                 'string',
@@ -259,13 +286,12 @@ class CheckpointController extends Controller
             ],
             'latitude' => 'nullable|numeric|between:-90,90',
             'longitude' => 'nullable|numeric|between:-180,180',
-            'geofence_radius' => 'nullable|integer|min:0',
-            'geofence_enabled' => 'boolean',
-            'site' => 'nullable|string|max:255',
-            'client_site_code' => 'nullable|string|max:100',
-            'checkpoint_code' => 'nullable|string|max:100',
-            'notes' => 'nullable|string',
-            'is_active' => 'boolean'
+            'radius' => 'nullable|integer|min:0',
+            'priority' => 'nullable|integer|min:0',
+            'is_active' => 'sometimes|boolean',
+            'client_id' => 'required|integer',
+            'branch_id' => 'required|integer',
+            'guard_id' => 'required|integer',
         ]);
 
         try {
@@ -274,36 +300,34 @@ class CheckpointController extends Controller
             $checkpoint = Checkpoint::where('branch_id', $branchId)
                 ->findOrFail($checkpointId);
 
-            $checkpoint->update($validated);
+            $checkpoint->update([
+                'name' => $validated['name'],
+                'description' => $validated['description'] ?? null,
+                'date_to_check' => $validated['date_to_check'],
+                'time_to_check' => $validated['time_to_check'],
+                'nfc_tag' => $validated['nfc_tag'] ?? null,
+                'latitude' => $validated['latitude'] ?? null,
+                'longitude' => $validated['longitude'] ?? null,
+                'radius' => $validated['radius'] ?? 50,
+                'priority' => $validated['priority'] ?? 0,
+                'is_active' => $request->has('is_active') ? $validated['is_active'] : false,
+                'client_id' => $validated['client_id'],
+                'branch_id' => $validated['branch_id'],
+                'user_id' => $validated['guard_id'],
+            ]);
 
             DB::commit();
 
-            if ($request->wantsJson()) {
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Checkpoint updated successfully',
-                    'data' => $checkpoint->load('branch')
-                ]);
-            }
-
             return redirect()
                 ->route('clients.branches.checkpoints.index', [
-                    'client' => $clientId,
-                    'branch' => $branchId,
-                    'client_id' => $clientId,
-                    'branch_id' => $branchId
+                    'client' => $validated['client_id'],
+                    'branch' => $validated['branch_id'],
+                    'client_id' => $validated['client_id'],
+                    'branch_id' => $validated['branch_id']
                 ])
                 ->with('success', 'Checkpoint updated successfully');
         } catch (\Exception $e) {
             DB::rollBack();
-
-            if ($request->wantsJson()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Failed to update checkpoint',
-                    'error' => $e->getMessage()
-                ], 500);
-            }
 
             return back()
                 ->withInput()
@@ -372,28 +396,14 @@ class CheckpointController extends Controller
      */
     public function getQrCode($clientId, $branchId, $checkpointId)
     {
-        try {
-            $checkpoint = Checkpoint::where('branch_id', $branchId)
-                ->findOrFail($checkpointId);
+        $checkpoint = Checkpoint::where('branch_id', $branchId)
+            ->findOrFail($checkpointId);
 
-            // In a real app, you would generate a QR code here
-            // For now, we'll just return the QR code data
-            return response()->json([
-                'success' => true,
-                'data' => [
-                    'qr_code' => $checkpoint->qr_code,
-                    'name' => $checkpoint->name,
-                    'checkpoint_id' => $checkpoint->id,
-                    'branch_id' => $branchId,
-                    'client_id' => $clientId
-                ]
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to fetch QR code',
-                'error' => $e->getMessage()
-            ], 500);
-        }
+        $qrData = $checkpoint->qr_code ?? $checkpoint->id;
+
+        return view('checkpoints.qrcode', [
+            'checkpoint' => $checkpoint,
+            'qr' => QrCode::size(300)->generate($qrData)
+        ]);
     }
 }

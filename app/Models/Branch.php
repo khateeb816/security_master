@@ -42,7 +42,10 @@ class Branch extends Model
     /**
      * Get the client that owns the branch.
      */
-
+    public function client()
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
 
     /**
      * Get the checkpoints for the branch.
@@ -51,6 +54,7 @@ class Branch extends Model
     {
         return $this->hasMany(Checkpoint::class);
     }
+
     public function user(){
         return $this->belongsTo(User::class);
     }
