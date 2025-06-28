@@ -24,6 +24,15 @@ class CheckpointController extends Controller
      */
     public function index($clientId = null, $branchId = null)
     {
+        // Debug logging
+        Log::info('CheckpointController@index called', [
+            'clientId' => $clientId,
+            'branchId' => $branchId,
+            'wantsJson' => request()->wantsJson(),
+            'isAjax' => request()->ajax(),
+            'url' => request()->url()
+        ]);
+
         $clients = User::where('role', 'client')->orderBy('name')->get();
 
         // If no clients exist, redirect to clients page
@@ -33,48 +42,35 @@ class CheckpointController extends Controller
                 ->with('warning', 'Please add a client and branch first before managing checkpoints.');
         }
 
-        // If no client is selected, use the first one
-        if (!$clientId) {
-            $firstClient = $clients->first();
-            $firstBranch = $firstClient->branches()->first();
+        // Initialize variables
+        $branches = collect();
+        $checkpoints = collect();
 
-            if ($firstBranch) {
-                return redirect()->route('clients.branches.checkpoints.index', [
-                    'client' => $firstClient->id,
-                    'branch' => $firstBranch->id,
-                    'client_id' => $firstClient->id,
-                    'branch_id' => $firstBranch->id
-                ]);
-            } else {
-                return redirect()
-                    ->route('clients.index')
-                    ->with('warning', 'Please add a branch to the client before managing checkpoints.');
-            }
-        }
-
-        // Get branches for the selected client
-        $branches = Branch::select(['id', 'name'])
-            ->where('user_id', $clientId)
-            ->orderBy('name')
-            ->get();
-
-        // If no branch is selected, use the first one
-        if (!$branchId && $branches->isNotEmpty()) {
-            return redirect()->route('clients.branches.checkpoints.index', [
-                'client' => $clientId,
-                'branch' => $branches->first()->id,
-                'client_id' => $clientId,
-                'branch_id' => $branches->first()->id
-            ]);
-        }
-
-        // Get checkpoints for the selected branch
-        $checkpoints = $branchId
-            ? Checkpoint::where('branch_id', $branchId)
-                ->with('branch')
+        // If client is selected, get branches for that client
+        if ($clientId) {
+            $branches = Branch::select(['id', 'name'])
+                ->where('user_id', $clientId)
                 ->orderBy('name')
-                ->get()
-            : collect();
+                ->get();
+
+            // If branch is selected, get checkpoints for that branch
+            if ($branchId) {
+                $checkpoints = Checkpoint::where('branch_id', $branchId)
+                    ->with('branch')
+                    ->orderBy('name')
+                    ->get();
+            }
+        } else {
+            // If no client is selected, show all checkpoints
+            $checkpoints = Checkpoint::with('branch.client')
+                ->orderBy('name')
+                ->get();
+        }
+
+        // Debug: Log the checkpoint count
+        Log::info('Checkpoints found: ' . $checkpoints->count());
+        Log::info('Client ID: ' . $clientId);
+        Log::info('Branch ID: ' . $branchId);
 
         $guards = User::where('role', 'guard')
             ->orderBy('name')
@@ -82,6 +78,7 @@ class CheckpointController extends Controller
 
         // Return JSON response for AJAX requests
         if (request()->wantsJson()) {
+            Log::info('Returning JSON response with ' . $checkpoints->count() . ' checkpoints');
             return response()->json($checkpoints);
         }
 
@@ -90,7 +87,7 @@ class CheckpointController extends Controller
             'clients' => $clients,
             'branches' => $branches,
             'checkpoints' => $checkpoints,
-            'selectedClient' => (int) $clientId,
+            'selectedClient' => $clientId ? (int) $clientId : null,
             'selectedBranch' => $branchId ? (int) $branchId : null,
             'guards' => $guards,
         ]);
@@ -109,84 +106,36 @@ class CheckpointController extends Controller
         $validated = $request->validate([
             'branch_id' => 'required|exists:branches,id',
             'client_id' => 'required|integer',
-            'guard_id' => 'required|exists:users,id',
             'name' => 'required|string|max:255',
-            'date_to_check' => 'required|date',
-            'time_to_check' => 'required',
             'description' => 'nullable|string',
-            'nfc_tag' => [
-                'nullable',
-                'string',
-                Rule::unique('checkpoints', 'nfc_tag')->where(function ($query) use ($branchId) {
-                    return $query->where('branch_id', $branchId);
-                })
-            ],
             'latitude' => 'nullable|numeric|between:-90,90',
             'longitude' => 'nullable|numeric|between:-180,180',
-            'radius' => 'nullable|integer|min:0',
-            'is_active' => 'boolean',
-            'priority' => 'nullable|integer|min:0',
+            'radius' => 'required|integer|min:0',
+            'is_active' => 'sometimes|boolean',
         ]);
 
         try {
             DB::beginTransaction();
-
-            // Prepare checkpoint data
-            $checkpointData = [
+            $checkpoint = Checkpoint::create([
                 'branch_id' => $validated['branch_id'],
-                'user_id' => $validated['guard_id'],
                 'client_id' => $validated['client_id'],
                 'name' => $validated['name'],
                 'description' => $validated['description'] ?? null,
-                'date_to_check' => $validated['date_to_check'],
-                'time_to_check' => $validated['time_to_check'],
                 'latitude' => $validated['latitude'] ?? null,
                 'longitude' => $validated['longitude'] ?? null,
-                'radius' => $validated['radius'] ?? 50, // Default radius
-                'status' => 'pending',
-                'media' => json_encode([]), // Empty media array
-                'priority' => $validated['priority'] ?? 0,
-                'nfc_tag' => $validated['nfc_tag'] ?? null,
-                'is_active' => $validated['is_active'] ?? true,
-            ];
-
-            $checkpoint = Checkpoint::create($checkpointData);
-
-            if (!$checkpoint) {
-                DB::rollBack();
-                Log::error('Checkpoint creation failed', ['data' => $checkpointData]);
-                return back()->withInput()->with('error', 'Failed to add checkpoint. Please check your input and try again.');
-            }
+                'radius' => $validated['radius'],
+                'is_active' => $request->has('is_active') ? $validated['is_active'] : false,
+            ]);
             DB::commit();
-
-            if ($request->wantsJson()) {
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Checkpoint added successfully',
-                    'data' => $checkpoint->load('branch')
-                ]);
-            }
-
-            return redirect()
-                ->route('clients.branches.checkpoints.index', [
-                    'client' => $clientId,
-                    'branch' => $branchId
-                ])
-                ->with('success', 'Checkpoint added successfully.');
+            return redirect()->route('clients.branches.checkpoints.index', [
+                'client' => $validated['client_id'],
+                'branch' => $validated['branch_id'],
+                'client_id' => $validated['client_id'],
+                'branch_id' => $validated['branch_id']
+            ])->with('success', 'Checkpoint added successfully.');
         } catch (\Exception $e) {
             DB::rollBack();
-
-            if ($request->wantsJson()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Failed to save checkpoint',
-                    'error' => $e->getMessage()
-                ], 500);
-            }
-
-            return back()
-                ->withInput()
-                ->with('error', 'Failed to save checkpoint: ' . $e->getMessage());
+            return back()->withInput()->with('error', 'Failed to save checkpoint: ' . $e->getMessage());
         }
     }
 
@@ -273,65 +222,39 @@ class CheckpointController extends Controller
     public function update(Request $request, $clientId, $branchId, $checkpointId)
     {
         $validated = $request->validate([
+            'branch_id' => 'required|exists:branches,id',
+            'client_id' => 'required|integer',
             'name' => 'required|string|max:255',
             'description' => 'nullable|string',
-            'date_to_check' => 'required|date',
-            'time_to_check' => 'required',
-            'nfc_tag' => [
-                'nullable',
-                'string',
-                Rule::unique('checkpoints', 'nfc_tag')
-                    ->ignore($checkpointId)
-                    ->where('branch_id', $branchId)
-            ],
             'latitude' => 'nullable|numeric|between:-90,90',
             'longitude' => 'nullable|numeric|between:-180,180',
-            'radius' => 'nullable|integer|min:0',
-            'priority' => 'nullable|integer|min:0',
+            'radius' => 'required|integer|min:0',
             'is_active' => 'sometimes|boolean',
-            'client_id' => 'required|integer',
-            'branch_id' => 'required|integer',
-            'guard_id' => 'required|integer',
         ]);
 
         try {
             DB::beginTransaction();
-
-            $checkpoint = Checkpoint::where('branch_id', $branchId)
-                ->findOrFail($checkpointId);
-
+            $checkpoint = Checkpoint::where('branch_id', $branchId)->findOrFail($checkpointId);
             $checkpoint->update([
+                'branch_id' => $validated['branch_id'],
+                'client_id' => $validated['client_id'],
                 'name' => $validated['name'],
                 'description' => $validated['description'] ?? null,
-                'date_to_check' => $validated['date_to_check'],
-                'time_to_check' => $validated['time_to_check'],
-                'nfc_tag' => $validated['nfc_tag'] ?? null,
                 'latitude' => $validated['latitude'] ?? null,
                 'longitude' => $validated['longitude'] ?? null,
-                'radius' => $validated['radius'] ?? 50,
-                'priority' => $validated['priority'] ?? 0,
+                'radius' => $validated['radius'],
                 'is_active' => $request->has('is_active') ? $validated['is_active'] : false,
-                'client_id' => $validated['client_id'],
-                'branch_id' => $validated['branch_id'],
-                'user_id' => $validated['guard_id'],
             ]);
-
             DB::commit();
-
-            return redirect()
-                ->route('clients.branches.checkpoints.index', [
-                    'client' => $validated['client_id'],
-                    'branch' => $validated['branch_id'],
-                    'client_id' => $validated['client_id'],
-                    'branch_id' => $validated['branch_id']
-                ])
-                ->with('success', 'Checkpoint updated successfully');
+            return redirect()->route('clients.branches.checkpoints.index', [
+                'client' => $validated['client_id'],
+                'branch' => $validated['branch_id'],
+                'client_id' => $validated['client_id'],
+                'branch_id' => $validated['branch_id']
+            ])->with('success', 'Checkpoint updated successfully');
         } catch (\Exception $e) {
             DB::rollBack();
-
-            return back()
-                ->withInput()
-                ->with('error', 'Failed to update checkpoint: ' . $e->getMessage());
+            return back()->withInput()->with('error', 'Failed to update checkpoint: ' . $e->getMessage());
         }
     }
 

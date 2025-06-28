@@ -69,6 +69,9 @@ Route::prefix('branches')->name('branches.')->group(function () {
     Route::delete('/{branch}', [\App\Http\Controllers\BranchController::class, 'destroy'])->name('destroy');
 });
 
+// Checkpoints Routes (Global)
+Route::get('/checkpoints', [\App\Http\Controllers\CheckpointController::class, 'index'])->name('checkpoints.all');
+
 // Client Management Routes
 Route::prefix('clients')->name('clients.')->group(function () {
     Route::get('/', [\App\Http\Controllers\ClientController::class, 'index'])->name('index');
@@ -78,6 +81,9 @@ Route::prefix('clients')->name('clients.')->group(function () {
     Route::put('/{client}', [\App\Http\Controllers\ClientController::class, 'update'])->name('update');
     Route::delete('/{client}', [\App\Http\Controllers\ClientController::class, 'destroy'])->name('destroy');
     Route::get('/{client}/edit', [\App\Http\Controllers\ClientController::class, 'edit'])->name('edit');
+
+    // Checkpoints for specific client
+    Route::get('/{client}/checkpoints', [\App\Http\Controllers\CheckpointController::class, 'index'])->name('checkpoints.client');
 
     // Branch Management Routes
     Route::prefix('{client}/branches')->name('branches.')->group(function () {
@@ -110,16 +116,19 @@ Route::prefix('clients')->name('clients.')->group(function () {
 });
 
 //Guards Management Routes
+Route::post('/assign-checkpoint', [\App\Http\Controllers\GuardController::class, 'assignCheckpoint'])->name('guards.assignCheckpoint');
+Route::delete('/remove-assignment/{assignment}', [\App\Http\Controllers\GuardController::class, 'removeAssignment'])->name('guards.removeAssignment');
+
 Route::prefix('guards')->name('guards.')->group(function () {
     Route::get('/', [\App\Http\Controllers\GuardController::class, 'index'])->name('index');
     Route::post('/', [\App\Http\Controllers\GuardController::class, 'store'])->name('store');
     Route::get('/create', [\App\Http\Controllers\GuardController::class, 'create'])->name('create');
-    Route::get('/{client}', [\App\Http\Controllers\GuardController::class, 'show'])->name('show');
-    Route::put('/{client}', [\App\Http\Controllers\GuardController::class, 'update'])->name('update');
-    Route::delete('/{client}', [\App\Http\Controllers\GuardController::class, 'destroy'])->name('destroy');
-    Route::get('/{client}/edit', [\App\Http\Controllers\GuardController::class, 'edit'])->name('edit');
-
+    Route::get('/{guard}', [\App\Http\Controllers\GuardController::class, 'show'])->name('show');
+    Route::put('/{guard}', [\App\Http\Controllers\GuardController::class, 'update'])->name('update');
+    Route::delete('/{guard}', [\App\Http\Controllers\GuardController::class, 'destroy'])->name('destroy');
+    Route::get('/{guard}/edit', [\App\Http\Controllers\GuardController::class, 'edit'])->name('edit');
 });
+
 // Test route for serving JavaScript file
 Route::get('/js/users.js', function () {
     $path = public_path('js/users.js');

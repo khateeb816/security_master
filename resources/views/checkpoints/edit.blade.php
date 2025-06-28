@@ -16,7 +16,7 @@
     <div class="row justify-content-center">
         <div class="col-md-8">
             <form method="POST" action="{{ route('clients.branches.checkpoints.update', [
-                'client' => $checkpoint->branch->user_id ?? $checkpoint->client_id,
+                'client' => $checkpoint->client_id,
                 'branch' => $checkpoint->branch_id,
                 'checkpoint' => $checkpoint->id,
             ]) }}">
@@ -43,23 +43,6 @@
                         </select>
                     </div>
                     <div class="col-md-12">
-                        <label for="guard_id" class="form-label">Assign Checkpoint to <span class="text-danger">*</span></label>
-                        <select class="form-select" id="guard_id" name="guard_id" required>
-                            <option value="">Select Guard</option>
-                            @foreach ($guards as $guard)
-                                <option value="{{ $guard->id }}" {{ $guard->id == $checkpoint->user_id ? 'selected' : '' }}>{{ $guard->name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-                    <div class="col-md-6">
-                        <label for="date_to_check" class="form-label">Date <span class="text-danger">*</span></label>
-                        <input type="date" class="form-control" id="date_to_check" name="date_to_check" value="{{ $checkpoint->date_to_check }}" required>
-                    </div>
-                    <div class="col-md-6">
-                        <label for="time_to_check" class="form-label">Time <span class="text-danger">*</span></label>
-                        <input type="time" class="form-control" id="time_to_check" name="time_to_check" value="{{ $checkpoint->time_to_check }}" required>
-                    </div>
-                    <div class="col-md-12">
                         <label for="name" class="form-label">Checkpoint Name <span class="text-danger">*</span></label>
                         <input type="text" class="form-control" id="name" name="name" value="{{ $checkpoint->name }}" required>
                     </div>
@@ -69,24 +52,15 @@
                     </div>
                     <div class="col-md-6">
                         <label for="latitude" class="form-label">Latitude</label>
-                        <input type="text" class="form-control" id="latitude" name="latitude" value="{{ $checkpoint->latitude }}">
+                        <input type="number" step="any" class="form-control" id="latitude" name="latitude" value="{{ $checkpoint->latitude }}">
                     </div>
                     <div class="col-md-6">
                         <label for="longitude" class="form-label">Longitude</label>
-                        <input type="text" class="form-control" id="longitude" name="longitude" value="{{ $checkpoint->longitude }}">
+                        <input type="number" step="any" class="form-control" id="longitude" name="longitude" value="{{ $checkpoint->longitude }}">
                     </div>
                     <div class="col-md-6">
-                        <label for="priority" class="form-label">Priority</label>
-                        <input type="number" class="form-control" id="priority" name="priority" value="{{ $checkpoint->priority }}">
-                    </div>
-                    <div class="col-md-6">
-                        <label for="radius" class="form-label">Geofence Radius (meters)</label>
-                        <input type="number" class="form-control" id="radius" name="radius" value="{{ $checkpoint->radius }}">
-                    </div>
-                    <div class="col-md-12">
-                        <label for="nfc_tag" class="form-label">NFC Tag UID (Optional)</label>
-                        <input type="text" class="form-control" id="nfc_tag" name="nfc_tag" value="{{ $checkpoint->nfc_tag }}">
-                        <small class="text-muted">Leave empty to generate automatically</small>
+                        <label for="radius" class="form-label">Geofence Radius (meters) <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control" id="radius" name="radius" value="{{ $checkpoint->radius }}" required>
                     </div>
                     <div class="col-12">
                         <div class="form-check form-switch">

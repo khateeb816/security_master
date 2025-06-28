@@ -10,7 +10,7 @@
                         style="height: 38px; border-radius: 8px;">
                         <option value="">Select Company</option>
                         <?php $__currentLoopData = $clients; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $client): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                            <option value="<?php echo e($client->id); ?>" <?php echo e(request('client_id') == $client->id ? 'selected' : ''); ?>>
+                            <option value="<?php echo e($client->id); ?>" <?php echo e($selectedClient == $client->id ? 'selected' : ''); ?>>
                                 <?php echo e($client->name); ?>
 
                             </option>
@@ -25,15 +25,15 @@
                 <!-- Branch Filter -->
                 <div class="position-relative" style="min-width: 220px;">
                     <select name="branch_id" id="branchFilter" class="form-select form-select-lg border-2 border-info"
-                        style="height: 38px; border-radius: 8px;" <?php echo e(!request('client_id') ? 'disabled' : ''); ?>>
+                        style="height: 38px; border-radius: 8px;" <?php echo e(!$selectedClient ? 'disabled' : ''); ?>>
                         <option value="">Select Branch</option>
-                        <?php if(request('client_id') && $branches->count()): ?>
+                        <?php if($selectedClient && $branches->count()): ?>
                             <?php $__currentLoopData = $branches; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $branch): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                                 <?php
                                     $name = $branch->name;
                                     $id = $branch->id;
                                 ?>
-                                <option value="<?php echo e($id); ?>" <?php echo e(request('branch_id') == $id ? 'selected' : ''); ?>>
+                                <option value="<?php echo e($id); ?>" <?php echo e($selectedBranch == $id ? 'selected' : ''); ?>>
                                     <?php echo e($name); ?></option>
                             <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                         <?php endif; ?>
@@ -45,7 +45,7 @@
 
                 <!-- Add Checkpoint Button -->
                 <button class="btn btn-primary d-flex align-items-center gap-2" id="addCheckpointBtn"
-                    <?php echo e(!request('branch_id') ? 'disabled' : ''); ?> style="height: 38px; border-radius: 8px;">
+                    style="height: 38px; border-radius: 8px;">
                     <i class="fas fa-plus-circle"></i>
                     <span>Add Checkpoint</span>
                 </button>
@@ -60,7 +60,10 @@
                             <tr>
                                 <th>#</th>
                                 <th>Checkpoint Name</th>
-                                <th>NFC Tag</th>
+                                <?php if(!request('client_id')): ?>
+                                    <th>Client</th>
+                                    <th>Branch</th>
+                                <?php endif; ?>
                                 <th>Status</th>
                                 <th>Created At</th>
                                 <th>Actions</th>
@@ -69,23 +72,25 @@
                         <tbody id="checkpointsTableBody">
                             <?php if(isset($checkpoints) && $checkpoints->count() > 0): ?>
                                 <?php $__currentLoopData = $checkpoints; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $index => $checkpoint): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                                    <tr data-id="<?php echo e($checkpoint->id); ?>" data-branch-id="<?php echo e($checkpoint->branch_id); ?>" data-client-id="<?php echo e($checkpoint->branch ? $checkpoint->branch->user_id : $checkpoint->client_id); ?>">
+                                    <tr data-id="<?php echo e($checkpoint->id); ?>" data-branch-id="<?php echo e($checkpoint->branch_id); ?>" data-client-id="<?php echo e($checkpoint->client_id); ?>">
                                         <td><?php echo e($index + 1); ?></td>
                                         <td><?php echo e($checkpoint->name); ?></td>
-                                        <td>
-                                            <?php if($checkpoint->qr_code): ?>
-                                                <span class="badge bg-light text-dark"><?php echo e($checkpoint->qr_code); ?></span>
-                                            <?php else: ?>
-                                                <span class="text-muted">-</span>
-                                            <?php endif; ?>
-                                        </td>
-                                        <td>
-                                            <?php if($checkpoint->nfc_tag): ?>
-                                                <span class="badge bg-info"><?php echo e($checkpoint->nfc_tag); ?></span>
-                                            <?php else: ?>
-                                                <span class="text-muted">-</span>
-                                            <?php endif; ?>
-                                        </td>
+                                        <?php if(!request('client_id')): ?>
+                                            <td>
+                                                <?php if($checkpoint->branch && $checkpoint->branch->client): ?>
+                                                    <span class="badge bg-primary"><?php echo e($checkpoint->branch->client->name); ?></span>
+                                                <?php else: ?>
+                                                    <span class="text-muted">-</span>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td>
+                                                <?php if($checkpoint->branch): ?>
+                                                    <span class="badge bg-info"><?php echo e($checkpoint->branch->name); ?></span>
+                                                <?php else: ?>
+                                                    <span class="text-muted">-</span>
+                                                <?php endif; ?>
+                                            </td>
+                                        <?php endif; ?>
                                         <td>
                                             <span
                                                 class="badge <?php echo e($checkpoint->is_active ? 'bg-success' : 'bg-secondary'); ?>">
@@ -97,7 +102,7 @@
                                         <td class="text-nowrap">
                                             <div class="d-flex gap-1">
                                                 <a href="<?php echo e(route('clients.branches.checkpoints.edit', [
-                                                    'client' => $checkpoint->branch->user_id ?? $checkpoint->client_id,
+                                                    'client' => $checkpoint->client_id,
                                                     'branch' => $checkpoint->branch_id,
                                                     'checkpoint' => $checkpoint->id,
                                                 ])); ?>"
@@ -113,7 +118,7 @@
                                                     <span class="d-none d-md-inline">Delete</span>
                                                 </button>
                                                 <a href="<?php echo e(route('clients.branches.checkpoints.qrcode', [
-                                                    'client' => $checkpoint->branch->user_id ?? $checkpoint->client_id,
+                                                    'client' => $checkpoint->client_id,
                                                     'branch' => $checkpoint->branch_id,
                                                     'checkpoint' => $checkpoint->id,
                                                 ])); ?>"
@@ -128,12 +133,8 @@
                                 <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                             <?php else: ?>
                                 <tr>
-                                    <td colspan="7" class="text-center py-4">
-                                        <?php if(request('branch_id')): ?>
-                                            No checkpoints found for this branch.
-                                        <?php else: ?>
-                                            Please select a branch to view checkpoints.
-                                        <?php endif; ?>
+                                    <td colspan="<?php echo e(!request('client_id') ? '7' : '5'); ?>" class="text-center py-4">
+                                        No checkpoints found. Use the filters above to view specific checkpoints or add new ones.
                                     </td>
                                 </tr>
                             <?php endif; ?>
@@ -173,7 +174,7 @@
                                 <option value="">Select Client</option>
                                 <?php $__currentLoopData = $clients; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $client): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                                     <option value="<?php echo e($client->id); ?>"
-                                        <?php echo e(request('client_id') == $client->id ? 'selected' : ''); ?>>
+                                        <?php echo e($selectedClient == $client->id ? 'selected' : ''); ?>>
                                         <?php echo e($client->name); ?>
 
                                     </option>
@@ -190,7 +191,7 @@
                                     <?php $__currentLoopData = $branches; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $branch): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
                                         <option value="<?php echo e($branch->id); ?>" data-lat="<?php echo e($branch->latitude); ?>"
                                             data-lng="<?php echo e($branch->longitude); ?>"
-                                            <?php echo e(request('branch_id') == $branch->id ? 'selected' : ''); ?>>
+                                            <?php echo e($selectedBranch == $branch->id ? 'selected' : ''); ?>>
                                             <?php echo e($branch->name); ?>
 
                                         </option>
@@ -198,31 +199,7 @@
                                 <?php endif; ?>
                             </select>
                         </div>
-                        <!-- Guard Selection -->
-                        <div class="col-md-12">
-                            <label for="guard_id" class="form-label">Assign Checkpoint to <span
-                                    class="text-danger">*</span></label>
-                            <select class="form-select" id="guard_id" name="guard_id" required>
-                                <option value="">Select Guard</option>
-                                <?php if(isset($guards) && $guards->count() > 0): ?>
-                                    <?php $__currentLoopData = $guards; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $guard): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
-                                        <option value="<?php echo e($guard->id); ?>">
-                                            <?php echo e($guard->name); ?>
 
-                                        </option>
-                                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
-                                <?php endif; ?>
-                            </select>
-                        </div>
-
-                        <div class="col-md-6">
-                            <label for="date_to_check" class="form-label">Date <span class="text-danger">*</span></label>
-                            <input type="date" class="form-control" id="date_to_check" name="date_to_check" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label for="time_to_check" class="form-label">Time <span class="text-danger">*</span></label>
-                            <input type="time" class="form-control" id="time_to_check" name="time_to_check" required>
-                        </div>
                         <!-- Checkpoint Details -->
                         <div class="col-md-12">
                             <label for="name" class="form-label">Checkpoint Name <span
@@ -236,38 +213,20 @@
 
                         <div class="col-md-6">
                             <label for="latitude" class="form-label">Latitude</label>
-                            <input type="text" class="form-control" id="latitude" name="latitude"
-                                placeholder="Will be auto-filled from branch" readonly>
+                            <input type="number" step="any" class="form-control" id="latitude" name="latitude">
                         </div>
 
                         <div class="col-md-6">
                             <label for="longitude" class="form-label">Longitude</label>
-                            <input type="text" class="form-control" id="longitude" name="longitude"
-                                placeholder="Will be auto-filled from branch" readonly>
+                            <input type="number" step="any" class="form-control" id="longitude" name="longitude">
                         </div>
 
                         <div class="col-md-12">
-                            <label for="priority" class="form-label">Priority</label>
+                            <label for="radius" class="form-label">Geofence Radius (meters) <span class="text-danger">*</span></label>
                             <div class="input-group">
-                                <input type="number" class="form-control" id="priority" name="priority"
-                                    placeholder="e.g. 1">
+                                <input type="number" class="form-control" id="radius" name="radius" required>
+                                <button class="btn btn-outline-secondary" type="button" id="setDefaultRadius">Default (50m)</button>
                             </div>
-                        </div>
-                        <div class="col-md-12">
-                            <label for="radius" class="form-label">Geofence Radius (meters)</label>
-                            <div class="input-group">
-                                <input type="number" class="form-control" id="radius" name="radius"
-                                    placeholder="e.g. 30">
-                                <button class="btn btn-outline-secondary" type="button" id="setDefaultRadius">Default
-                                    (50m)</button>
-                            </div>
-                        </div>
-
-                        <div class="col-md-12">
-                            <label for="nfc_tag" class="form-label">NFC Tag UID (Optional)</label>
-                            <input type="text" class="form-control" id="nfc_tag" name="nfc_tag"
-                                placeholder="e.g., 04:5A:2B:8C">
-                            <small class="text-muted">Leave empty to generate automatically</small>
                         </div>
 
                         <div class="col-12">
@@ -368,7 +327,6 @@
                     // Reset and disable branch filter
                     branchFilter.empty().append('<option value="">Loading branches...</option>').prop(
                         'disabled', true).trigger('change');
-                    $('#addCheckpointBtn').prop('disabled', true);
 
                     if (!clientId) {
                         // Redirect to the checkpoints index with client_id parameter
@@ -439,25 +397,20 @@
                     branchChangeTimer = setTimeout(() => {
                         console.log('Processing branch change after debounce');
                         if (!branchId) {
-                            $('#addCheckpointBtn').prop('disabled', true);
                             updateUrl({
                                 client_id: clientId,
                                 branch_id: ''
                             });
-                            $('#checkpointsTableBody').html(`
-                    <tr>
-                        <td colspan="7" class="text-center py-4">
-                            Please select a branch to view checkpoints.
-                        </td>
-                    </tr>
-                `);
+                            // Load all checkpoints for the client or all checkpoints if no client
+                            if (clientId) {
+                                loadAllCheckpointsForClient(clientId);
+                            } else {
+                                loadAllCheckpoints();
+                            }
                             return;
                         }
 
-                        console.log('Enabling Add Checkpoint button for branch:', branchId);
-                        $('#addCheckpointBtn').prop('disabled', false);
-                        console.log('Button disabled state after enabling:', $('#addCheckpointBtn')
-                            .prop('disabled'));
+                        console.log('Loading checkpoints for branch:', branchId);
                         updateUrl({
                             client_id: clientId,
                             branch_id: branchId
@@ -467,20 +420,16 @@
                 });
 
                 // Initialize Select2 on page load if client is selected
-                <?php if(request('client_id')): ?>
+                <?php if($selectedClient): ?>
                     $('#clientFilter').trigger('change');
                 <?php endif; ?>
 
-                // If branch_id is in URL but branch filter is not set, trigger the change
-                <?php if(request('branch_id') && !request()->has('_branch_loaded')): ?>
+                // If branch is selected, trigger the change after a delay
+                <?php if($selectedBranch): ?>
                     $(document).ready(function() {
-                        const url = new URL(window.location.href);
-                        url.searchParams.set('_branch_loaded', '1');
-                        window.history.replaceState({}, '', url);
-
                         // Small delay to ensure select2 is initialized
                         setTimeout(() => {
-                            const branchId = '<?php echo e(request('branch_id')); ?>';
+                            const branchId = '<?php echo e($selectedBranch); ?>';
                             if ($('#branchFilter option[value="' + branchId + '"]').length > 0) {
                                 $('#branchFilter').val(branchId).trigger('change');
                             }
@@ -694,7 +643,6 @@
                         // ...populate modal as before...
                         $('#checkpointId').val(checkpoint.id);
                         $('#name').val(checkpoint.name || '');
-                        $('#nfc_tag').val(checkpoint.nfc_tag || '');
                         $('#client_id').val(clientId).trigger('change');
                         setTimeout(() => {
                             $('#branch_id').val(branchId).trigger('change');
@@ -781,10 +729,9 @@
                             if (response && response.length > 0) {
                                 response.forEach((checkpoint, index) => {
                                     tbody.append(`
-                            <tr data-id="${checkpoint.id}" data-branch-id="${checkpoint.branch_id}" data-client-id="${checkpoint.branch ? checkpoint.branch.user_id : checkpoint.client_id}">
+                            <tr data-id="${checkpoint.id}" data-branch-id="${checkpoint.branch_id}" data-client-id="${checkpoint.client_id}">
                                 <td>${index + 1}</td>
                                 <td>${checkpoint.name || '-'}</td>
-                                <td>${checkpoint.nfc_tag || '-'}</td>
                                 <td>
                                     <span class="badge ${checkpoint.is_active ? 'bg-success' : 'bg-secondary'}">
                                         ${checkpoint.is_active ? 'Active' : 'Inactive'}
@@ -793,11 +740,7 @@
                                 <td>${checkpoint.created_at ? new Date(checkpoint.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '-'}</td>
                                 <td class="text-nowrap">
                                     <div class="d-flex gap-1">
-                                        <a href="<?php echo e(route('clients.branches.checkpoints.edit', [
-                                            'client' => $checkpoint->branch->user_id ?? $checkpoint->client_id,
-                                            'branch' => $checkpoint->branch_id,
-                                            'checkpoint' => $checkpoint->id,
-                                        ])); ?>"
+                                        <a href="/clients/${checkpoint.client_id}/branches/${checkpoint.branch_id}/checkpoints/${checkpoint.id}/edit"
                                             class="btn btn-sm btn-outline-primary d-flex align-items-center gap-1"
                                             title="Edit">
                                             <i class="fas fa-edit"></i>
@@ -807,7 +750,7 @@
                                             <i class="fas fa-trash"></i>
                                             <span class="d-none d-md-inline">Delete</span>
                                         </button>
-                                        <a href="/clients/${clientId}/branches/${branchId}/checkpoints/${checkpoint.id}/qrcode"
+                                        <a href="/clients/${checkpoint.client_id}/branches/${checkpoint.branch_id}/checkpoints/${checkpoint.id}/qrcode"
                                             class="btn btn-sm btn-outline-success d-flex align-items-center gap-1"
                                             target="_blank" title="View QR Code">
                                             <i class="fas fa-qrcode"></i>
@@ -821,7 +764,7 @@
                             } else {
                                 tbody.append(`
                         <tr>
-                            <td colspan="6" class="text-center py-4">
+                            <td colspan="5" class="text-center py-4">
                                 No checkpoints found for this branch.
                             </td>
                         </tr>
@@ -853,8 +796,8 @@
 
                     // Get current client and branch from URL or form
                     const urlParams = new URLSearchParams(window.location.search);
-                    const clientId = urlParams.get('client_id') || $('#clientFilter').val();
-                    const branchId = urlParams.get('branch_id') || $('#branchFilter').val();
+                    const clientId = '<?php echo e($selectedClient); ?>' || $('#clientFilter').val();
+                    const branchId = '<?php echo e($selectedBranch); ?>' || $('#branchFilter').val();
 
                     // Set client and branch in form if available
                     if (clientId) {
@@ -934,6 +877,157 @@
                 // Initialize the page
                 if (branchId) {
                     loadCheckpoints(branchId);
+                }
+
+                // Load all checkpoints
+                function loadAllCheckpoints() {
+                    const url = '/checkpoints';
+                    console.log('Loading all checkpoints from:', url);
+
+                    $.ajax({
+                        url: url,
+                        type: 'GET',
+                        dataType: 'json',
+                        success: function(response) {
+                            console.log('All checkpoints loaded successfully:', response);
+                            const tbody = $('#checkpointsTableBody');
+                            tbody.empty();
+
+                            if (response && response.length > 0) {
+                                response.forEach((checkpoint, index) => {
+                                    tbody.append(`
+                            <tr data-id="${checkpoint.id}" data-branch-id="${checkpoint.branch_id}" data-client-id="${checkpoint.client_id}">
+                                <td>${index + 1}</td>
+                                <td>${checkpoint.name || '-'}</td>
+                                <td>
+                                    <span class="badge bg-primary">${checkpoint.branch && checkpoint.branch.client ? checkpoint.branch.client.name : '-'}</span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-info">${checkpoint.branch ? checkpoint.branch.name : '-'}</span>
+                                </td>
+                                <td>
+                                    <span class="badge ${checkpoint.is_active ? 'bg-success' : 'bg-secondary'}">
+                                        ${checkpoint.is_active ? 'Active' : 'Inactive'}
+                                    </span>
+                                </td>
+                                <td>${checkpoint.created_at ? new Date(checkpoint.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '-'}</td>
+                                <td class="text-nowrap">
+                                    <div class="d-flex gap-1">
+                                        <a href="/clients/${checkpoint.client_id}/branches/${checkpoint.branch_id}/checkpoints/${checkpoint.id}/edit"
+                                            class="btn btn-sm btn-outline-primary d-flex align-items-center gap-1"
+                                            title="Edit">
+                                            <i class="fas fa-edit"></i>
+                                            <span class="d-none d-md-inline">Edit</span>
+                                        </a>
+                                        <button class="btn btn-sm btn-outline-danger delete-checkpoint d-flex align-items-center gap-1" data-id="${checkpoint.id}" title="Delete">
+                                            <i class="fas fa-trash"></i>
+                                            <span class="d-none d-md-inline">Delete</span>
+                                        </button>
+                                        <a href="/clients/${checkpoint.client_id}/branches/${checkpoint.branch_id}/checkpoints/${checkpoint.id}/qrcode"
+                                            class="btn btn-sm btn-outline-success d-flex align-items-center gap-1"
+                                            target="_blank" title="View QR Code">
+                                            <i class="fas fa-qrcode"></i>
+                                            <span class="d-none d-md-inline">QR Code</span>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        `);
+                                });
+                            } else {
+                                tbody.append(`
+                        <tr>
+                            <td colspan="7" class="text-center py-4">
+                                No checkpoints found. Use the filters above to view specific checkpoints or add new ones.
+                            </td>
+                        </tr>
+                    `);
+                            }
+                        },
+                        error: function(xhr, status, error) {
+                            console.error('Error loading all checkpoints:', {
+                                status: status,
+                                error: error,
+                                response: xhr.responseText
+                            });
+                            showToast('error',
+                                'Failed to load checkpoints. Please check the console for details.');
+                        }
+                    });
+                }
+
+                // Load all checkpoints for a specific client
+                function loadAllCheckpointsForClient(clientId) {
+                    const url = `/clients/${clientId}/checkpoints`;
+                    console.log('Loading all checkpoints for client from:', url);
+
+                    $.ajax({
+                        url: url,
+                        type: 'GET',
+                        dataType: 'json',
+                        success: function(response) {
+                            console.log('Client checkpoints loaded successfully:', response);
+                            const tbody = $('#checkpointsTableBody');
+                            tbody.empty();
+
+                            if (response && response.length > 0) {
+                                response.forEach((checkpoint, index) => {
+                                    tbody.append(`
+                            <tr data-id="${checkpoint.id}" data-branch-id="${checkpoint.branch_id}" data-client-id="${checkpoint.client_id}">
+                                <td>${index + 1}</td>
+                                <td>${checkpoint.name || '-'}</td>
+                                <td>
+                                    <span class="badge bg-info">${checkpoint.branch ? checkpoint.branch.name : '-'}</span>
+                                </td>
+                                <td>
+                                    <span class="badge ${checkpoint.is_active ? 'bg-success' : 'bg-secondary'}">
+                                        ${checkpoint.is_active ? 'Active' : 'Inactive'}
+                                    </span>
+                                </td>
+                                <td>${checkpoint.created_at ? new Date(checkpoint.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '-'}</td>
+                                <td class="text-nowrap">
+                                    <div class="d-flex gap-1">
+                                        <a href="/clients/${checkpoint.client_id}/branches/${checkpoint.branch_id}/checkpoints/${checkpoint.id}/edit"
+                                            class="btn btn-sm btn-outline-primary d-flex align-items-center gap-1"
+                                            title="Edit">
+                                            <i class="fas fa-edit"></i>
+                                            <span class="d-none d-md-inline">Edit</span>
+                                        </a>
+                                        <button class="btn btn-sm btn-outline-danger delete-checkpoint d-flex align-items-center gap-1" data-id="${checkpoint.id}" title="Delete">
+                                            <i class="fas fa-trash"></i>
+                                            <span class="d-none d-md-inline">Delete</span>
+                                        </button>
+                                        <a href="/clients/${checkpoint.client_id}/branches/${checkpoint.branch_id}/checkpoints/${checkpoint.id}/qrcode"
+                                            class="btn btn-sm btn-outline-success d-flex align-items-center gap-1"
+                                            target="_blank" title="View QR Code">
+                                            <i class="fas fa-qrcode"></i>
+                                            <span class="d-none d-md-inline">QR Code</span>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        `);
+                                });
+                            } else {
+                                tbody.append(`
+                        <tr>
+                            <td colspan="6" class="text-center py-4">
+                                No checkpoints found for this client. Please select a branch to view checkpoints.
+                            </td>
+                        </tr>
+                    `);
+                            }
+                        },
+                        error: function(xhr, status, error) {
+                            console.error('Error loading client checkpoints:', {
+                                status: status,
+                                error: error,
+                                response: xhr.responseText
+                            });
+                            showToast('error',
+                                'Failed to load checkpoints. Please check the console for details.');
+                        }
+                    });
                 }
             });
         </script>

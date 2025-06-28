@@ -33,6 +33,9 @@
                             <td><?php echo e($guard->country ?? 'N/A'); ?></td>
                             <td>
                                 <div class="d-flex gap-1" role="group">
+                                    <a href="<?php echo e(route('guards.show', $guard->id)); ?>" class="btn btn-primary btn-sm" title="View Details">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
                                     <button class="btn btn-warning edit-guard-btn"
                                             data-bs-toggle="modal"
                                             data-bs-target="#editguardModal"
@@ -53,6 +56,9 @@
                                             title="Edit">
                                         <i class="fas fa-edit"></i>
                                     </button>
+                                    <button class="btn btn-info assign-checkpoint-btn" data-guard-id="<?php echo e($guard->id); ?>" data-guard-name="<?php echo e($guard->name); ?>" data-bs-toggle="modal" data-bs-target="#assignCheckpointModal" title="Assign Checkpoint">
+                                        <i class="fas fa-map-marker-alt"></i>
+                                    </button>
                                     <form action="<?php echo e(route('guards.destroy', $guard->id)); ?>" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this guard?');">
                                         <?php echo csrf_field(); ?>
                                         <?php echo method_field('DELETE'); ?>
@@ -62,7 +68,6 @@
                                         </button>
                                     </form>
                                 </div>
-                                </button>
                             </td>
                         <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                         <tr>
@@ -256,6 +261,73 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
                 <button type="submit" class="btn btn-primary btn-sm">Save Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Assign Checkpoint Modal -->
+<div class="modal fade" id="assignCheckpointModal" tabindex="-1" aria-labelledby="assignCheckpointModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <form id="assignCheckpointForm" class="modal-content" method="POST" action="<?php echo e(route('guards.assignCheckpoint')); ?>">
+            <?php echo csrf_field(); ?>
+            <input type="hidden" name="guard_id" id="assign_guard_id">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title" id="assignCheckpointModalLabel">
+                    <i class="fas fa-map-marker-alt me-1"></i> Assign Checkpoint to <span id="assignGuardName"></span>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label for="assign_client_id" class="form-label">Client <span class="text-danger">*</span></label>
+                        <select class="form-select" id="assign_client_id" name="client_id" required>
+                            <option value="">Select Client</option>
+                            <?php $__currentLoopData = $clients; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $client): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                                <option value="<?php echo e($client->id); ?>"><?php echo e($client->name); ?></option>
+                            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
+                        </select>
+                        <div class="invalid-feedback">Please select a client</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="assign_branch_id" class="form-label">Branch <span class="text-danger">*</span></label>
+                        <select class="form-select" id="assign_branch_id" name="branch_id" required>
+                            <option value="">Select Branch</option>
+                        </select>
+                        <div class="invalid-feedback">Please select a branch</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="assign_checkpoint_id" class="form-label">Checkpoint <span class="text-danger">*</span></label>
+                        <select class="form-select" id="assign_checkpoint_id" name="checkpoint_id" required>
+                            <option value="">Select Checkpoint</option>
+                        </select>
+                        <div class="invalid-feedback">Please select a checkpoint</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="assign_priority" class="form-label">Priority <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control" id="assign_priority" name="priority" value="0" min="0" required>
+                        <div class="invalid-feedback">Please enter a priority (number)</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="assign_date" class="form-label">Date <span class="text-danger">*</span></label>
+                        <input type="date" class="form-control" id="assign_date" name="date" required>
+                        <div class="invalid-feedback">Please select a date</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="assign_time" class="form-label">Time <span class="text-danger">*</span></label>
+                        <input type="time" class="form-control" id="assign_time" name="time" required>
+                        <div class="invalid-feedback">Please select a time</div>
+                    </div>
+                    <div class="col-12">
+                        <label for="assign_notes" class="form-label">Notes</label>
+                        <textarea class="form-control" id="assign_notes" name="notes" rows="3" placeholder="Enter any additional notes or instructions for this assignment..."></textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-info">Assign Checkpoint</button>
             </div>
         </form>
     </div>
@@ -853,6 +925,199 @@ function showToast(type, message) {
         }, false);
     });
 })();
+
+// Assign Checkpoint Modal logic
+$(document).ready(function() {
+    // When Assign Checkpoint button is clicked
+    $(document).on('click', '.assign-checkpoint-btn', function() {
+        const guardId = $(this).data('guard-id');
+        const guardName = $(this).data('guard-name');
+        $('#assign_guard_id').val(guardId);
+        $('#assignGuardName').text(guardName);
+
+        // Reset form fields
+        $('#assignCheckpointForm')[0].reset();
+        $('#assign_client_id').val('');
+        $('#assign_branch_id').html('<option value="">Select Branch</option>');
+        $('#assign_checkpoint_id').html('<option value="">Select Checkpoint</option>');
+        $('#assign_priority').val('');
+        $('#assign_notes').val('');
+
+        // Set default date to today
+        const today = new Date().toISOString().split('T')[0];
+        $('#assign_date').val(today);
+
+        // Set default time to current time (rounded to nearest 15 minutes)
+        const now = new Date();
+        const hours = now.getHours().toString().padStart(2, '0');
+        const minutes = Math.round(now.getMinutes() / 15) * 15;
+        const timeString = `${hours}:${minutes.toString().padStart(2, '0')}`;
+        $('#assign_time').val(timeString);
+
+        // Clear validation states
+        $('#assignCheckpointForm').removeClass('was-validated');
+        $('#assignCheckpointForm .is-invalid').removeClass('is-invalid');
+        $('#assignCheckpointForm .is-valid').removeClass('is-valid');
+    });
+
+    // When client is selected, load branches
+    $('#assign_client_id').on('change', function() {
+        const clientId = $(this).val();
+        const branchSelect = $('#assign_branch_id');
+        const checkpointSelect = $('#assign_checkpoint_id');
+        branchSelect.html('<option value="">Loading branches...</option>');
+        checkpointSelect.html('<option value="">Select Checkpoint</option>');
+        if (!clientId) return;
+
+        $.ajax({
+            url: `/clients/${clientId}/branches`,
+            method: 'GET',
+            dataType: 'json',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            success: function(response) {
+                console.log('Branches response:', response);
+                let options = '<option value="">Select Branch</option>';
+
+                // Handle different response formats
+                let branches = [];
+                if (Array.isArray(response)) {
+                    branches = response;
+                } else if (response && Array.isArray(response.data)) {
+                    branches = response.data;
+                } else if (response && response.branches) {
+                    branches = response.branches;
+                }
+
+                if (branches.length > 0) {
+                    branches.forEach(function(branch) {
+                        options += `<option value="${branch.id}">${branch.name}</option>`;
+                    });
+                } else {
+                    options = '<option value="">No branches found</option>';
+                }
+                branchSelect.html(options);
+            },
+            error: function(xhr, status, error) {
+                console.error('Error loading branches:', xhr.responseText);
+                console.error('Status:', status);
+                console.error('Error:', error);
+                branchSelect.html('<option value="">Error loading branches</option>');
+            }
+        });
+    });
+
+    // When branch is selected, load checkpoints
+    $('#assign_branch_id').on('change', function() {
+        const branchId = $(this).val();
+        const clientId = $('#assign_client_id').val();
+        const checkpointSelect = $('#assign_checkpoint_id');
+        checkpointSelect.html('<option value="">Loading checkpoints...</option>');
+        if (!clientId || !branchId) return;
+
+        console.log('Loading checkpoints for client:', clientId, 'branch:', branchId);
+
+        $.ajax({
+            url: `/clients/${clientId}/branches/${branchId}/checkpoints`,
+            method: 'GET',
+            dataType: 'json',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            success: function(response) {
+                console.log('Checkpoints response:', response);
+                let options = '<option value="">Select Checkpoint</option>';
+
+                // Handle different response formats
+                let checkpoints = [];
+                if (Array.isArray(response)) {
+                    checkpoints = response;
+                } else if (response && Array.isArray(response.data)) {
+                    checkpoints = response.data;
+                } else if (response && response.checkpoints) {
+                    checkpoints = response.checkpoints;
+                }
+
+                if (checkpoints.length > 0) {
+                    checkpoints.forEach(function(checkpoint) {
+                        options += `<option value="${checkpoint.id}">${checkpoint.name}</option>`;
+                    });
+                } else {
+                    options = '<option value="">No checkpoints found</option>';
+                }
+                checkpointSelect.html(options);
+            },
+            error: function(xhr, status, error) {
+                console.error('Error loading checkpoints:', xhr.responseText);
+                console.error('Status:', status);
+                console.error('Error:', error);
+                console.error('Response:', xhr.responseText);
+                checkpointSelect.html('<option value="">Error loading checkpoints</option>');
+            }
+        });
+    });
+
+    // Handle assign checkpoint form submission
+    $('#assignCheckpointForm').on('submit', function(e) {
+        e.preventDefault();
+
+        // Check form validity
+        if (!this.checkValidity()) {
+            e.stopPropagation();
+            $(this).addClass('was-validated');
+            return;
+        }
+
+        const submitBtn = $(this).find('button[type="submit"]');
+        const originalText = submitBtn.text();
+
+        // Show loading state
+        submitBtn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2"></span>Assigning...');
+
+        // Get form data
+        const formData = new FormData(this);
+
+        $.ajax({
+            url: $(this).attr('action'),
+            method: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            headers: {
+                'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+            },
+            success: function(response) {
+                showToast('success', response.message || 'Checkpoint assigned successfully!');
+
+                // Close modal after success
+                setTimeout(() => {
+                    $('#assignCheckpointModal').modal('hide');
+                }, 1500);
+            },
+            error: function(xhr) {
+                let errorMessage = 'An error occurred while assigning the checkpoint.';
+
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMessage = xhr.responseJSON.message;
+                } else if (xhr.responseJSON && xhr.responseJSON.errors) {
+                    // Handle validation errors
+                    const errors = xhr.responseJSON.errors;
+                    const errorMessages = Object.values(errors).flat();
+                    errorMessage = errorMessages.join('<br>');
+                }
+
+                showToast('danger', errorMessage);
+            },
+            complete: function() {
+                // Reset button state
+                submitBtn.prop('disabled', false).text(originalText);
+            }
+        });
+    });
+});
 </script>
 <?php $__env->stopPush(); ?>
 

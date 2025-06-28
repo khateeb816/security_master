@@ -17,21 +17,13 @@ class Checkpoint extends Model
      */
     protected $fillable = [
         'branch_id',
-        'user_id',
         'client_id',
         'name',
         'description',
-        'nfc_tag',
         'is_active',
         'latitude',
-        'date_to_check',
-        'time_to_check',
         'longitude',
         'radius',
-        'priority',
-        'checked_time',
-        'media',
-        'status',
     ];
 
     /**
@@ -44,9 +36,6 @@ class Checkpoint extends Model
         'radius' => 'integer',
         'latitude' => 'float',
         'longitude' => 'float',
-        'priority' => 'integer',
-        'checked_time' => 'datetime',
-        'media' => 'json',
         'status' => 'string',
     ];
 
@@ -56,5 +45,10 @@ class Checkpoint extends Model
     public function branch(): BelongsTo
     {
         return $this->belongsTo(Branch::class);
+    }
+
+    public function client(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\User::class, 'client_id');
     }
 }
