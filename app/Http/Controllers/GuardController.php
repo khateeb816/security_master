@@ -29,7 +29,10 @@ class GuardController extends Controller
             ->where('guard_id', $guardId)
             ->get();
 
-        return view('guards.show', compact('guard', 'clients', 'assignedCheckpoints'));
+        $incidents = \App\Models\incident::where('user_id', $guardId)->latest()->get();
+        $alerts = \App\Models\Alert::where('user_id', $guardId)->latest()->get();
+
+        return view('guards.show', compact('guard', 'clients', 'assignedCheckpoints', 'incidents', 'alerts'));
     }
 
     public function store(Request $request)
@@ -201,5 +204,98 @@ class GuardController extends Controller
         DB::table('assign_checkpoints')->where('id', $assignmentId)->delete();
 
         return redirect()->back()->with('success', 'Assignment removed successfully');
+    }
+
+    public function patrolLogs(Request $request)
+    {
+        $query = \App\Models\AssignCheckpoint::with(['checkpoint', 'user_guard']);
+
+        // Filter by guard or checkpoint name
+        if ($request->search) {
+            $query->where(function($q) use ($request) {
+                $q->whereHas('user_guard', function($q2) use ($request) {
+                    $q2->where('name', 'like', '%' . $request->search . '%');
+                })->orWhereHas('checkpoint', function($q2) use ($request) {
+                    $q2->where('name', 'like', '%' . $request->search . '%');
+                });
+            });
+        }
+
+        // Filter by date
+        if ($request->date) {
+            $query->whereDate('date_to_check', $request->date);
+        }
+
+        $logs = $query->paginate(20);
+
+        return view('patrol_logs', compact('logs'));
+    }
+
+    public function incidents(Request $request)
+    {
+        $query = \App\Models\incident::with('user');
+
+        // Filter by guard name or incident type
+        if ($request->search) {
+            $query->where(function($q) use ($request) {
+                $q->whereHas('user', function($q2) use ($request) {
+                    $q2->where('name', 'like', '%' . $request->search . '%');
+                })->orWhere('type', 'like', '%' . $request->search . '%');
+            });
+        }
+
+        // Filter by date
+        if ($request->date) {
+            $query->whereDate('created_at', $request->date);
+        }
+
+        $incidents = $query->paginate(20);
+
+        return view('incidents', compact('incidents'));
+    }
+
+    public function alerts(Request $request)
+    {
+        $query = \App\Models\Alert::with('user');
+
+        // Filter by guard name or alert type
+        if ($request->search) {
+            $query->where(function($q) use ($request) {
+                $q->whereHas('user', function($q2) use ($request) {
+                    $q2->where('name', 'like', '%' . $request->search . '%');
+                })->orWhere('type', 'like', '%' . $request->search . '%');
+            });
+        }
+
+        // Filter by date
+        if ($request->date) {
+            $query->whereDate('created_at', $request->date);
+        }
+
+        $alerts = $query->paginate(20);
+
+        return view('alerts', compact('alerts'));
+    }
+
+    public function markAlertAsRead($id)
+    {
+        $alert = \App\Models\Alert::findOrFail($id);
+        $alert->status = 'read';
+        $alert->save();
+
+        return redirect()->back()->with('success', 'Alert marked as read.');
+    }
+
+    public function updateIncidentStatus(Request $request, $id)
+    {
+        $request->validate([
+            'status' => 'required|in:active,inactive'
+        ]);
+
+        $incident = \App\Models\incident::findOrFail($id);
+        $incident->status = $request->status;
+        $incident->save();
+
+        return redirect()->back()->with('success', 'Incident status updated.');
     }
 }

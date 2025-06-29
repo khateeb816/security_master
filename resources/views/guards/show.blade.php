@@ -162,6 +162,88 @@
             </div>
         </div>
     </div>
+
+    <!-- Incidents Created by Guard Section -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Incidents Created by {{ $guard->name }}</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>#</th>
+                                    <th>Type</th>
+                                    <th>Message</th>
+                                    <th>Time</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse($incidents as $i => $incident)
+                                    <tr>
+                                        <td>{{ $i + 1 }}</td>
+                                        <td>{{ $incident->type }}</td>
+                                        <td>{{ $incident->message }}</td>
+                                        <td>{{ $incident->created_at->format('Y-m-d h:i A') }}</td>
+                                        <td>{{ $incident->status ?? '-' }}</td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="5" class="text-center">No incidents found for this guard.</td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alerts Created by Guard Section -->
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-info text-dark">
+                    <h5 class="mb-0"><i class="fas fa-bell me-2"></i>Alerts Created by {{ $guard->name }}</h5>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>#</th>
+                                    <th>Type</th>
+                                    <th>Message</th>
+                                    <th>Time</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse($alerts as $i => $alert)
+                                    <tr>
+                                        <td>{{ $i + 1 }}</td>
+                                        <td>{{ $alert->type }}</td>
+                                        <td>{{ $alert->message }}</td>
+                                        <td>{{ $alert->created_at->format('Y-m-d h:i A') }}</td>
+                                        <td>{{ $alert->status ?? '-' }}</td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="5" class="text-center">No alerts found for this guard.</td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- Assign Checkpoint Modal -->

@@ -165,8 +165,6 @@
                 class="fas fa-bolt me-2"></i> Incidents</a>
         <a href="{{ route('alerts') }}" class="{{ request()->routeIs('alerts') ? 'active' : '' }}"><i
                 class="fas fa-bell me-2"></i> Alerts</a>
-        <a href="{{ route('users.index') }}" class="{{ request()->routeIs('users.*') ? 'active' : '' }}"><i
-                class="fas fa-users me-2"></i> Users</a>
     </div>
 
     <!-- Main Content -->

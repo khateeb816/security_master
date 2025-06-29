@@ -24,7 +24,7 @@ class StoreClientRequest extends FormRequest
     {
         return [
             'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:clients,email',
+            'email' => 'required|string|email|max:255|unique:users,email',
             'phone' => 'nullable|string|max:20',
             'contact_person' => 'nullable|string|max:255',
             'address' => 'nullable|string|max:500',
@@ -42,7 +42,7 @@ class StoreClientRequest extends FormRequest
             'additional_recipients' => 'nullable|string',
         ];
     }
-    
+
     public function messages()
     {
         return [

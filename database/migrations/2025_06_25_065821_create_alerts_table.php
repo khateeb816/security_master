@@ -14,10 +14,14 @@ return new class extends Migration
         Schema::create('alerts', function (Blueprint $table) {
             $table->id();
             $table->string('type');
-            $table->text('message');
-            $table->integer('user_id'); //guard
-            $table->string('status');
+            $table->timestamp('time');
+            $table->text('message')->nullable();
+            $table->decimal('latitude', 10, 8);
+            $table->decimal('longitude', 11, 8);
+            $table->integer('user_id');
+            $table->string('status')->default('pending');
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 

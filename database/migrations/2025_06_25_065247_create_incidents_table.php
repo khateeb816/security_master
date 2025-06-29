@@ -19,6 +19,7 @@ return new class extends Migration
             $table->time('time');
             $table->string('type'); //normal, urgent, etc
             $table->json('media'); //{type , url}
+            $table->text('message')->nullable();
             $table->timestamps();
         });
     }

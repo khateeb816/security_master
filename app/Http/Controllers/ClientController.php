@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreClientRequest;
+use App\Http\Requests\UpdateClientRequest;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -17,19 +18,6 @@ class ClientController extends Controller
 
    public function store(StoreClientRequest $request)
 {
-    // Validate required fields (without unique rule for now)
-    $request->validate([
-        'name' => 'required|string',
-        'email' => 'required|email',
-        'phone' => 'required',
-        'status' => 'required',
-    ]);
-
-    // Manual email existence check
-    if (User::where('email', $request->email)->exists()) {
-        return redirect()->back()->withErrors(['email' => 'Email already exists'])->withInput();
-    }
-
     // Create the user
     User::create([
         'name' => $request->name,
@@ -52,7 +40,7 @@ class ClientController extends Controller
     return redirect()->back()->with('success', 'Client Added Successfully');
 }
 
-    public function update(Request $request)
+    public function update(UpdateClientRequest $request)
     {
         $client = User::find($request->id);
         $client->update([

@@ -56,6 +56,10 @@
                         <label for="longitude" class="form-label">Longitude</label>
                         <input type="number" step="any" class="form-control" id="longitude" name="longitude" value="<?php echo e($checkpoint->longitude); ?>">
                     </div>
+                    <div class="col-12 mb-3">
+                        <label class="form-label">Select Location on Map</label>
+                        <div id="selectLocationMap" style="height: 250px; width: 100%; border: 1px solid #ccc; border-radius: 8px;"></div>
+                    </div>
                     <div class="col-md-6">
                         <label for="radius" class="form-label">Geofence Radius (meters) <span class="text-danger">*</span></label>
                         <input type="number" class="form-control" id="radius" name="radius" value="<?php echo e($checkpoint->radius); ?>" required>
@@ -76,5 +80,53 @@
     </div>
 </div>
 <?php $__env->stopSection(); ?>
+
+<?php $__env->startPush('styles'); ?>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<?php $__env->stopPush(); ?>
+
+<?php $__env->startPush('scripts'); ?>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let selectMap = null;
+    let selectMarker = null;
+    const selectMapId = 'selectLocationMap';
+    const $lat = document.getElementById('latitude');
+    const $lng = document.getElementById('longitude');
+    // Default center (if no lat/lng): somewhere generic
+    let lat = parseFloat($lat.value) || 24.7136;
+    let lng = parseFloat($lng.value) || 46.6753;
+    selectMap = L.map(selectMapId).setView([lat, lng], 15);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(selectMap);
+    // If lat/lng present, add marker
+    if ($lat.value && $lng.value) {
+        selectMarker = L.marker([lat, lng], {draggable: true}).addTo(selectMap);
+    }
+    // On map click, set marker and update fields
+    selectMap.on('click', function(e) {
+        lat = e.latlng.lat;
+        lng = e.latlng.lng;
+        $lat.value = lat.toFixed(6);
+        $lng.value = lng.toFixed(6);
+        if (selectMarker) {
+            selectMarker.setLatLng([lat, lng]);
+        } else {
+            selectMarker = L.marker([lat, lng], {draggable: true}).addTo(selectMap);
+        }
+    });
+    // On marker drag, update fields
+    if (selectMarker) {
+        selectMarker.on('dragend', function(e) {
+            const pos = e.target.getLatLng();
+            $lat.value = pos.lat.toFixed(6);
+            $lng.value = pos.lng.toFixed(6);
+        });
+    }
+});
+</script>
+<?php $__env->stopPush(); ?>
 
 <?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH K:\Laravel\security-master\resources\views\checkpoints\edit.blade.php ENDPATH**/ ?>

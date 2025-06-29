@@ -22,8 +22,8 @@ class UpdateClientRequest extends FormRequest
      */
     public function rules(): array
     {
-        $clientId = $this->route('client') ? $this->route('client')->id : null;
-        
+        $clientId = $this->input('id');
+
         return [
             'name' => 'required|string|max:255',
             'email' => [
@@ -31,7 +31,7 @@ class UpdateClientRequest extends FormRequest
                 'string',
                 'email',
                 'max:255',
-                Rule::unique('clients', 'email')->ignore($clientId)
+                Rule::unique('users', 'email')->ignore($clientId)
             ],
             'phone' => 'nullable|string|max:20',
             'contact_person' => 'nullable|string|max:255',
@@ -49,7 +49,7 @@ class UpdateClientRequest extends FormRequest
             'additional_recipients' => 'nullable|string',
         ];
     }
-    
+
     public function messages()
     {
         return [

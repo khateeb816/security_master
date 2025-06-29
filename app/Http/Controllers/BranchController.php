@@ -38,7 +38,7 @@ class BranchController extends Controller
     public function getBranchesByClient($client)
     {
         $branches = Branch::where('user_id', $client)
-            ->select('id', 'name', 'latitude', 'longitude')
+            ->select('id', 'name', 'latitude', 'longitude', 'email', 'phone', 'city', 'country')
             ->get();
         return response()->json([
             'success' => true,

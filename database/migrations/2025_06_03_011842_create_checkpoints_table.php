@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('checkpoints', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('branch_id')->constrained()->onDelete('cascade');
+            $table->integer('branch_id');
             $table->integer('client_id'); //client
             $table->string('name');
             $table->text('description')->nullable();

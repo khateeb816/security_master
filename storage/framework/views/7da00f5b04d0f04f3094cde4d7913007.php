@@ -1,20 +1,19 @@
-@extends('layouts.app')
-@section('content')
+<?php $__env->startSection('content'); ?>
     <div class="container-fluid">
         <div class="d-flex align-items-center justify-content-between mb-4">
             <h4 class="fw-semibold mb-0">Patrol Logs</h4>
         </div>
 
         <!-- Search and filter controls - properly aligned -->
-        <form method="GET" action="{{ route('patrol.logs') }}" class="row mb-4 align-items-center">
+        <form method="GET" action="<?php echo e(route('patrol.logs')); ?>" class="row mb-4 align-items-center">
             <div class="col-lg-4 col-md-12 mb-2 mb-lg-0 d-flex gap-2">
                 <div class="input-group">
-                    <input type="text" name="search" class="form-control" placeholder="Search by Guard or Checkpoint" value="{{ request('search') }}">
+                    <input type="text" name="search" class="form-control" placeholder="Search by Guard or Checkpoint" value="<?php echo e(request('search')); ?>">
                 </div>
             </div>
 
             <div class="col-lg-3 col-md-4 mb-2 mb-lg-0">
-                <input type="date" name="date" class="form-control" value="{{ request('date') }}">
+                <input type="date" name="date" class="form-control" value="<?php echo e(request('date')); ?>">
             </div>
 
             <div class="col-lg-2 col-md-4 mb-2 mb-lg-0">
@@ -46,56 +45,57 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @forelse($logs as $i => $log)
+                            <?php $__empty_1 = true; $__currentLoopData = $logs; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $i => $log): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
                                 <tr>
-                                    <td>{{ $i + 1 }}</td>
-                                    <td>{{ $log->user_guard->name ?? '-' }}</td>
-                                    <td>{{ $log->checkpoint->name ?? '-' }}</td>
-                                    <td>{{ \Carbon\Carbon::parse($log->date_to_check)->format('Y-m-d') }}</td>
-                                    <td>{{ \Carbon\Carbon::parse($log->time_to_check)->format('h:i A') }}</td>
+                                    <td><?php echo e($i + 1); ?></td>
+                                    <td><?php echo e($log->user_guard->name ?? '-'); ?></td>
+                                    <td><?php echo e($log->checkpoint->name ?? '-'); ?></td>
+                                    <td><?php echo e(\Carbon\Carbon::parse($log->date_to_check)->format('Y-m-d')); ?></td>
+                                    <td><?php echo e(\Carbon\Carbon::parse($log->time_to_check)->format('h:i A')); ?></td>
                                     <td>
-                                        @if($log->status === 'Completed')
+                                        <?php if($log->status === 'Completed'): ?>
                                             <span class="badge bg-success rounded-pill px-3">Completed</span>
-                                        @elseif($log->status === 'Missed')
+                                        <?php elseif($log->status === 'Missed'): ?>
                                             <span class="badge bg-danger rounded-pill px-3">Missed</span>
-                                        @else
-                                            <span class="badge bg-warning text-dark rounded-pill px-3">{{ $log->status }}</span>
-                                        @endif
+                                        <?php else: ?>
+                                            <span class="badge bg-warning text-dark rounded-pill px-3"><?php echo e($log->status); ?></span>
+                                        <?php endif; ?>
                                     </td>
                                     <td>
                                         <div class="d-flex gap-1">
-                                            @if($log->checkpoint && $log->checkpoint->latitude && $log->checkpoint->longitude)
+                                            <?php if($log->checkpoint && $log->checkpoint->latitude && $log->checkpoint->longitude): ?>
                                                 <button type="button"
                                                     class="btn btn-sm btn-outline-primary"
-                                                    onclick="showPatrolLogMap({{ $log->checkpoint->latitude }}, {{ $log->checkpoint->longitude }}, 'Checkpoint Location')">
+                                                    onclick="showPatrolLogMap(<?php echo e($log->checkpoint->latitude); ?>, <?php echo e($log->checkpoint->longitude); ?>, 'Checkpoint Location')">
                                                     Checkpoint Map
                                                 </button>
-                                            @endif
-                                            @if($log->latitude && $log->longitude)
+                                            <?php endif; ?>
+                                            <?php if($log->latitude && $log->longitude): ?>
                                                 <button type="button"
                                                     class="btn btn-sm btn-info"
-                                                    onclick="showPatrolLogMap({{ $log->latitude }}, {{ $log->longitude }}, 'Checked Location')">
+                                                    onclick="showPatrolLogMap(<?php echo e($log->latitude); ?>, <?php echo e($log->longitude); ?>, 'Checked Location')">
                                                     Checked Map
                                                 </button>
-                                            @endif
-                                            @if(!($log->checkpoint && $log->checkpoint->latitude && $log->checkpoint->longitude) && !($log->latitude && $log->longitude))
+                                            <?php endif; ?>
+                                            <?php if(!($log->checkpoint && $log->checkpoint->latitude && $log->checkpoint->longitude) && !($log->latitude && $log->longitude)): ?>
                                                 <span class="text-muted">N/A</span>
-                                            @endif
+                                            <?php endif; ?>
                                         </div>
                                     </td>
                                 </tr>
-                            @empty
+                            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                                 <tr>
                                     <td colspan="5" class="text-center">No patrol logs found.</td>
                                 </tr>
-                            @endforelse
+                            <?php endif; ?>
                         </tbody>
                     </table>
                 </div>
             </div>
         </div>
         <div class="mt-3">
-            {{ $logs->withQueryString()->links() }}
+            <?php echo e($logs->withQueryString()->links()); ?>
+
         </div>
     </div>
 
@@ -189,4 +189,6 @@
         }, 300); // Wait for modal to render
     }
     </script>
-@endsection
+<?php $__env->stopSection(); ?>
+
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH K:\Laravel\security-master\resources\views/patrol_logs.blade.php ENDPATH**/ ?>

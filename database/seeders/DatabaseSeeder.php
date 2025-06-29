@@ -15,6 +15,7 @@ class DatabaseSeeder extends Seeder
     {
         // Call seeders in order
         $this->call([
+            AdminSeeder::class,
             ClientSeeder::class,
             GuardSeeder::class,
             BranchSeeder::class,

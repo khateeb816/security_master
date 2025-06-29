@@ -157,15 +157,32 @@
                                     <div class="invalid-feedback">Please provide a country</div>
                                     <div class="valid-feedback">Looks good!</div>
                                 </div>
-                                <div class="col-md-3">
+
+                                <!-- Map Section -->
+                                <div class="col-12">
+                                    <label class="form-label">Location <span class="text-danger">*</span></label>
+                                    <div class="alert alert-info">
+                                        <i class="fas fa-info-circle me-2"></i>
+                                        Click on the map below to set the branch location coordinates, or use the "Find Location" button to get coordinates from your address
+                                    </div>
+                                    <div class="mb-2">
+                                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="geocodeAddress()">
+                                            <i class="fas fa-search-location me-1"></i>
+                                            Find Location from Address
+                                        </button>
+                                    </div>
+                                    <div id="branchMap" style="height: 400px; border-radius: 8px; border: 2px solid #dee2e6;"></div>
+                                </div>
+
+                                <div class="col-md-6">
                                     <label class="form-label">Latitude <span class="text-danger">*</span></label>
-                                    <input type="number" name="latitude" step="0.000001" class="form-control" required>
+                                    <input type="number" name="latitude" id="branch_latitude" step="0.000001" class="form-control" required>
                                     <div class="invalid-feedback">Please provide a valid latitude (-90 to 90)</div>
                                     <div class="valid-feedback">Looks good!</div>
                                 </div>
-                                <div class="col-md-3">
+                                <div class="col-md-6">
                                     <label class="form-label">Longitude <span class="text-danger">*</span></label>
-                                    <input type="number" name="longitude" step="0.000001" class="form-control" required>
+                                    <input type="number" name="longitude" id="branch_longitude" step="0.000001" class="form-control" required>
                                     <div class="invalid-feedback">Please provide a valid longitude (-180 to 180)</div>
                                     <div class="valid-feedback">Looks good!</div>
                                 </div>
@@ -1146,7 +1163,109 @@ function setupFormValidation() {
 // Initialize form validation when the document is ready
 document.addEventListener('DOMContentLoaded', function() {
     setupFormValidation();
+    initializeBranchMap();
 });
+
+// Branch Map functionality
+let branchMap = null;
+let branchMarker = null;
+
+function initializeBranchMap() {
+    // Initialize map when branch modal is shown
+    document.getElementById('addBranchModal').addEventListener('shown.bs.modal', function () {
+        if (!branchMap) {
+            // Initialize the map
+            branchMap = L.map('branchMap').setView([24.8607, 67.0011], 10); // Default to Karachi
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 18,
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(branchMap);
+
+            // Add click event to map
+            branchMap.on('click', function(e) {
+                const lat = e.latlng.lat;
+                const lng = e.latlng.lng;
+
+                // Update input fields
+                document.getElementById('branch_latitude').value = lat.toFixed(6);
+                document.getElementById('branch_longitude').value = lng.toFixed(6);
+
+                // Update or create marker
+                if (branchMarker) {
+                    branchMarker.setLatLng(e.latlng);
+                } else {
+                    branchMarker = L.marker(e.latlng).addTo(branchMap);
+                }
+
+                // Show coordinates in popup
+                branchMarker.bindPopup(`Selected Location:<br>Lat: ${lat.toFixed(6)}<br>Lng: ${lng.toFixed(6)}`).openPopup();
+
+                // Trigger validation
+                document.getElementById('branch_latitude').dispatchEvent(new Event('input'));
+                document.getElementById('branch_longitude').dispatchEvent(new Event('input'));
+            });
+        }
+    });
+
+    // Clear map when modal is hidden
+    document.getElementById('addBranchModal').addEventListener('hidden.bs.modal', function () {
+        if (branchMap) {
+            branchMap.remove();
+            branchMap = null;
+            branchMarker = null;
+        }
+    });
+}
+
+// Function to set coordinates from address (geocoding)
+async function geocodeAddress() {
+    const address = document.querySelector('input[name="address"]').value;
+    const city = document.querySelector('input[name="city"]').value;
+    const country = document.querySelector('input[name="country"]').value;
+
+    if (!address || !city) {
+        showToast('warning', 'Please enter address and city first');
+        return;
+    }
+
+    const fullAddress = `${address}, ${city}, ${country}`;
+
+    try {
+        // Using Nominatim (OpenStreetMap geocoding service)
+        const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(fullAddress)}&limit=1`);
+        const data = await response.json();
+
+        if (data && data.length > 0) {
+            const lat = parseFloat(data[0].lat);
+            const lng = parseFloat(data[0].lon);
+
+            // Update input fields
+            document.getElementById('branch_latitude').value = lat.toFixed(6);
+            document.getElementById('branch_longitude').value = lng.toFixed(6);
+
+            // Update map
+            if (branchMap) {
+                branchMap.setView([lat, lng], 15);
+
+                if (branchMarker) {
+                    branchMarker.setLatLng([lat, lng]);
+                } else {
+                    branchMarker = L.marker([lat, lng]).addTo(branchMap);
+                }
+
+                branchMarker.bindPopup(`Geocoded Location:<br>Lat: ${lat.toFixed(6)}<br>Lng: ${lng.toFixed(6)}`).openPopup();
+            }
+
+            showToast('success', 'Location found! Click on map to adjust if needed.');
+        } else {
+            showToast('warning', 'Address not found. Please click on the map to set location manually.');
+        }
+    } catch (error) {
+        console.error('Geocoding error:', error);
+        showToast('warning', 'Could not find address. Please click on the map to set location manually.');
+    }
+}
 
 // Delete branch with confirmation and AJAX
 async function deleteBranch(branchId, button) {

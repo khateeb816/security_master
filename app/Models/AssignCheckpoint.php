@@ -29,6 +29,11 @@ class AssignCheckpoint extends Model
         return $this->belongsTo(Checkpoint::class);
     }
 
+    public function assignedGuard()
+    {
+        return $this->belongsTo(User::class, 'guard_id');
+    }
+
     public function user_guard()
     {
         return $this->belongsTo(User::class, 'guard_id');

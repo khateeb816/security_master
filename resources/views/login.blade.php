@@ -15,7 +15,7 @@
             padding: 0;
             overflow: hidden;
         }
-        
+
         .background-image {
             position: fixed;
             top: 0;
@@ -23,12 +23,12 @@
             width: 100%;
             height: 100%;
             z-index: -1;
-        background-image: url('{{ asset('assets/background.png') }}');
+            background-image: url('{{ asset('assets/background.png') }}');
             background-size: cover;
             background-position: center;
             filter: brightness(0.85);
         }
-        
+
         .login-container {
             display: flex;
             justify-content: center;
@@ -36,7 +36,7 @@
             min-height: 100vh;
             width: 100%;
         }
-        
+
         .form-panel {
             background-color: rgba(255, 255, 255, 0.95);
             border-radius: 16px;
@@ -45,40 +45,56 @@
             max-width: 500px;
             box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
         }
-        
+
         .form-control {
             border-radius: 8px;
             padding: 10px 15px;
         }
-        
+
+        .form-control.is-invalid {
+            border-color: #dc3545;
+            box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+        }
+
         .btn-primary {
             background-color: #2196f3;
             border: none;
             padding: 10px;
             border-radius: 8px;
         }
-        
+
         .btn-primary:hover {
             background-color: #0d8bf2;
         }
-        
+
         .logo {
             height: 60px;
         }
-        
+
         .login-heading {
             font-weight: 700;
         }
-        
+
         .brand-text {
             color: #2196f3;
             font-weight: 600;
+        }
+
+        .alert {
+            border-radius: 8px;
+            border: none;
+        }
+
+        .invalid-feedback {
+            display: block;
+            font-size: 0.875em;
+            color: #dc3545;
         }
     </style>
 </head>
 <body>
     <div class="background-image"></div>
-    
+
     <div class="container-fluid login-container">
         <div class="form-panel">
             <div class="text-center mb-4">
@@ -86,27 +102,81 @@
             </div>
             <h4 class="text-center login-heading">Welcome to <span class="brand-text">QR - Patrol Sync</span></h4>
             <p class="text-center mb-4 text-muted">A cloud guard tour monitoring system to manage your patrols</p>
-            
+
+            @if(session('success'))
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <i class="fas fa-check-circle me-2"></i>
+                    {{ session('success') }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            @endif
+
+            @if($errors->any())
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    @foreach($errors->all() as $error)
+                        {{ $error }}<br>
+                    @endforeach
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            @endif
+
             <form action="{{ route('login') }}" method="POST">
                 @csrf
                 <div class="mb-3">
-                    <label for="email" class="form-label">User Name*</label>
-                    <input type="text" class="form-control" name="email" placeholder="Type here" required>
+                    <label for="email" class="form-label">Email*</label>
+                    <input type="text"
+                           class="form-control @error('email') is-invalid @enderror"
+                           name="email"
+                           id="email"
+                           value="{{ old('email') }}"
+                           placeholder="Enter your username or email"
+                           required
+                           autofocus>
+                    @error('email')
+                        <div class="invalid-feedback">
+                            {{ $message }}
+                        </div>
+                    @enderror
                 </div>
                 <div class="mb-3 position-relative">
                     <label for="password" class="form-label">Password*</label>
-                    <input type="password" class="form-control" name="password" placeholder="Enter Your Password" required>
+                    <input type="password"
+                           class="form-control @error('password') is-invalid @enderror"
+                           name="password"
+                           id="password"
+                           placeholder="Enter your password"
+                           required>
+                    @error('password')
+                        <div class="invalid-feedback">
+                            {{ $message }}
+                        </div>
+                    @enderror
                 </div>
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <div class="form-check">
-                        <input class="form-check-input" type="checkbox" name="remember">
-                        <label class="form-check-label">Remember Me</label>
+                        <input class="form-check-input" type="checkbox" name="remember" id="remember" {{ old('remember') ? 'checked' : '' }}>
+                        <label class="form-check-label" for="remember">
+                            Remember Me
+                        </label>
                     </div>
                     <a href="#" class="text-decoration-none small text-primary">Forgot Password?</a>
                 </div>
-                <button type="submit" class="btn btn-primary w-100 mb-3">Log In</button>
+                <button type="submit" class="btn btn-primary w-100 mb-3">
+                    <i class="fas fa-sign-in-alt me-2"></i>
+                    Log In
+                </button>
             </form>
+
+            <div class="text-center">
+                <small class="text-muted">
+                    <i class="fas fa-shield-alt me-1"></i>
+                    Only administrators can access the dashboard
+                </small>
+            </div>
         </div>
     </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

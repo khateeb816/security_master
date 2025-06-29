@@ -1,13 +1,11 @@
-@extends('layouts.app')
-
-@section('content')
+<?php $__env->startSection('content'); ?>
     <div class="container-fluid">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h4 class="fw-semibold mb-0">Live Alerts</h4>
 
-            <form method="GET" action="{{ route('alerts') }}" class="d-flex align-items-center gap-2 mb-4">
-                <input type="text" name="search" class="form-control form-control-sm" placeholder="Search alerts or guards" value="{{ request('search') }}">
-                <input type="date" name="date" class="form-control form-control-sm" value="{{ request('date') }}">
+            <form method="GET" action="<?php echo e(route('alerts')); ?>" class="d-flex align-items-center gap-2 mb-4">
+                <input type="text" name="search" class="form-control form-control-sm" placeholder="Search alerts or guards" value="<?php echo e(request('search')); ?>">
+                <input type="date" name="date" class="form-control form-control-sm" value="<?php echo e(request('date')); ?>">
                 <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-search me-1"></i></button>
             </form>
         </div>
@@ -28,41 +26,41 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @forelse($alerts as $i => $alert)
+                            <?php $__empty_1 = true; $__currentLoopData = $alerts; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $i => $alert): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
                                 <tr>
-                                    <td>{{ $i + 1 + (($alerts->currentPage() - 1) * $alerts->perPage()) }}</td>
-                                    <td>{{ $alert->user->name ?? '-' }}</td>
-                                    <td>{{ $alert->type }}</td>
-                                    <td>{{ $alert->created_at->format('Y-m-d h:i A') }}</td>
-                                    <td>{{ $alert->status }}</td>
+                                    <td><?php echo e($i + 1 + (($alerts->currentPage() - 1) * $alerts->perPage())); ?></td>
+                                    <td><?php echo e($alert->user->name ?? '-'); ?></td>
+                                    <td><?php echo e($alert->type); ?></td>
+                                    <td><?php echo e($alert->created_at->format('Y-m-d h:i A')); ?></td>
+                                    <td><?php echo e($alert->status); ?></td>
 
                                     <td>
-                                        @if($alert->status != 'read')
-                                            <form method="POST" action="{{ route('alerts.markRead', $alert->id) }}" style="display:inline;">
-                                                @csrf
+                                        <?php if($alert->status != 'read'): ?>
+                                            <form method="POST" action="<?php echo e(route('alerts.markRead', $alert->id)); ?>" style="display:inline;">
+                                                <?php echo csrf_field(); ?>
                                                 <button type="submit" class="btn btn-sm btn-success">Mark as Read</button>
                                             </form>
-                                        @else
+                                        <?php else: ?>
                                             <i class="fas fa-eye text-primary"></i>
-                                        @endif
+                                        <?php endif; ?>
                                     </td>
                                     <td>
-                                        @if($alert->latitude && $alert->longitude)
+                                        <?php if($alert->latitude && $alert->longitude): ?>
                                             <button type="button"
                                                 class="btn btn-sm btn-info"
-                                                onclick="showAlertMap({{ $alert->latitude }}, {{ $alert->longitude }})">
+                                                onclick="showAlertMap(<?php echo e($alert->latitude); ?>, <?php echo e($alert->longitude); ?>)">
                                                 Show on Map
                                             </button>
-                                        @else
+                                        <?php else: ?>
                                             <span class="text-muted">N/A</span>
-                                        @endif
+                                        <?php endif; ?>
                                     </td>
                                 </tr>
-                            @empty
+                            <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
                                 <tr>
                                     <td colspan="6" class="text-center">No alerts found.</td>
                                 </tr>
-                            @endforelse
+                            <?php endif; ?>
                         </tbody>
                     </table>
                 </div>
@@ -70,7 +68,8 @@
         </div>
 
         <div class="mt-3">
-            {{ $alerts->withQueryString()->links() }}
+            <?php echo e($alerts->withQueryString()->links()); ?>
+
         </div>
     </div>
 
@@ -111,4 +110,6 @@
         }, 300); // Wait for modal to render
     }
     </script>
-@endsection
+<?php $__env->stopSection(); ?>
+
+<?php echo $__env->make('layouts.app', array_diff_key(get_defined_vars(), ['__data' => 1, '__path' => 1]))->render(); ?><?php /**PATH K:\Laravel\security-master\resources\views/alerts.blade.php ENDPATH**/ ?>

@@ -682,7 +682,7 @@ function fillEditForm(buttonData) {
     const fields = [
         'id', 'name', 'email', 'phone', 'address',
         'city', 'state', 'postal_code', 'country', 'status', 'language',
-        'nfc_uid', 'cnic', 'notes', 
+        'nfc_uid', 'cnic', 'notes',
     ];
 
     // Handle regular fields
@@ -973,13 +973,16 @@ async function loadBranches(companyId) {
 
             try {
                 const row = `
-                    <tr>
+                    <tr class="branch-row" style="cursor: pointer;"
+                        onclick="redirectToCheckpoints(${document.getElementById('branch_company_id').value}, ${branch.id})"
+                        data-client-id="${document.getElementById('branch_company_id').value}"
+                        data-branch-id="${branch.id}">
                         <td>${index + 1}</td>
                         <td>
                             <div class="fw-semibold">${escapeHtml(branch.name || 'N/A')}</div>
                         </td>
-                        <td>${branch.email ? `<a href="mailto:${escapeHtml(branch.email)}">${escapeHtml(branch.email)}</a>` : '<span class="text-muted">-</span>'}</td>
-                        <td>${branch.phone ? `<a href="tel:${escapeHtml(branch.phone)}">${escapeHtml(branch.phone)}</a>` : '<span class="text-muted">-</span>'}</td>
+                        <td>${branch.email ? `<a href="mailto:${escapeHtml(branch.email)}" onclick="event.stopPropagation()">${escapeHtml(branch.email)}</a>` : '<span class="text-muted">-</span>'}</td>
+                        <td>${branch.phone ? `<a href="tel:${escapeHtml(branch.phone)}" onclick="event.stopPropagation()">${escapeHtml(branch.phone)}</a>` : '<span class="text-muted">-</span>'}</td>
                         <td>
                             <div class="d-flex flex-column">
                                 <span>${branch.city || '<span class="text-muted">-</span>'}</span>
@@ -987,7 +990,7 @@ async function loadBranches(companyId) {
                             </div>
                         </td>
                         <td>
-                            <div class="d-flex gap-1">
+                            <div class="d-flex gap-1" onclick="event.stopPropagation()">
                                 <button class="btn btn-sm btn-primary"
                                         onclick="editBranch(${JSON.stringify(branch).replace(/"/g, '&quot;')})"
                                         data-bs-toggle="tooltip"
@@ -1265,6 +1268,20 @@ function showToast(type, message) {
         }, false);
     });
 })();
+
+// Function to redirect to checkpoints page
+function redirectToCheckpoints(clientId, branchId) {
+    // Close the modal first
+    const modal = bootstrap.Modal.getInstance(document.getElementById('addBranchModal'));
+    if (modal) {
+        modal.hide();
+    }
+
+    // Redirect to the checkpoints page using URL path parameters only
+    // This avoids conflicts with the JavaScript that reads query parameters
+    const url = `/clients/${clientId}/branches/${branchId}/checkpoints`;
+    window.location.href = url;
+}
 </script>
 <?php $__env->stopPush(); ?>
 
