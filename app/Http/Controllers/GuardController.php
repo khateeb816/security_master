@@ -67,16 +67,9 @@ class GuardController extends Controller
 
     public function update(Request $request, User $guard)
     {
-        // Debug: Log the guard parameter
-        Log::info('Update method called', [
-            'guard_id' => $guard->id,
-            'request_id' => $request->id,
-            'request_all' => $request->all()
-        ]);
-
         // Use route model binding - $guard is already the User model
         if (!$guard) {
-            Log::error('Guard not found in update method', ['guard' => $guard]);
+
             if ($request->ajax()) {
                 return response()->json([
                     'success' => false,

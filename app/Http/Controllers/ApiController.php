@@ -15,13 +15,7 @@ use App\Models\alert;
 class ApiController extends Controller
 {
     public function login (Request $request) {
-        \Log::info('API login called', [
-            'email' => $request->email,
-            'latitude' => $request->latitude,
-            'longitude' => $request->longitude,
-            'ip' => $request->ip(),
-            'all' => $request->all()
-        ]);
+
 
         $request->validate([
             'email' => 'required|email',
@@ -37,21 +31,14 @@ class ApiController extends Controller
                 ->with('checkpoint')
                 ->get();
 
-            \Log::info('AssignCheckpoints found', ['count' => $checkpoints->count()]);
+
 
             foreach($checkpoints as $assignCheckpoint) {
                 $checkpoint = $assignCheckpoint->checkpoint;
 
-                \Log::info('Checking checkpoint', [
-                    'assign_id' => $assignCheckpoint->id,
-                    'checkpoint_id' => $checkpoint->id ?? null,
-                    'lat' => $checkpoint->latitude ?? null,
-                    'lng' => $checkpoint->longitude ?? null,
-                    'radius' => $checkpoint->radius ?? null,
-                ]);
 
                 if (!$checkpoint) {
-                    \Log::warning('No checkpoint found for assignment', ['assign_id' => $assignCheckpoint->id]);
+
                     continue;
                 }
 
@@ -61,10 +48,7 @@ class ApiController extends Controller
                     $checkpoint->latitude,
                     $checkpoint->longitude
                 );
-                \Log::info('Distance calculated', [
-                    'distance' => $distance,
-                    'allowed_radius' => $checkpoint->radius
-                ]);
+               
 
                 if ($distance <= $checkpoint->radius) {
                     $token = $user->createToken('auth-token')->plainTextToken;

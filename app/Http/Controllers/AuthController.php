@@ -39,11 +39,7 @@ class AuthController extends Controller
                    ->first();
 
         if (!$user) {
-            Log::warning('Login attempt failed: User not found', [
-                'email' => $request->email,
-                'ip' => $request->ip(),
-                'user_agent' => $request->userAgent()
-            ]);
+
 
             return back()->withErrors([
                 'email' => 'Invalid credentials.',
@@ -52,12 +48,7 @@ class AuthController extends Controller
 
         // Check if user is active
         if ($user->status !== 'active') {
-            Log::warning('Login attempt failed: Inactive user', [
-                'user_id' => $user->id,
-                'email' => $request->email,
-                'status' => $user->status,
-                'ip' => $request->ip()
-            ]);
+
 
             return back()->withErrors([
                 'email' => 'Your account is not active. Please contact administrator.',
@@ -70,23 +61,12 @@ class AuthController extends Controller
             'password' => $request->password
         ], $request->boolean('remember'))) {
 
-            Log::info('User logged in successfully', [
-                'user_id' => $user->id,
-                'email' => $user->email,
-                'role' => $user->role,
-                'ip' => $request->ip()
-            ]);
+
 
             // Redirect based on role
             return $this->redirectBasedOnRole();
         }
 
-        // Authentication failed
-        Log::warning('Login attempt failed: Invalid password', [
-            'user_id' => $user->id,
-            'email' => $request->email,
-            'ip' => $request->ip()
-        ]);
 
         return back()->withErrors([
             'email' => 'Invalid credentials.',
@@ -98,17 +78,7 @@ class AuthController extends Controller
      */
     public function logout(Request $request)
     {
-        $user = Auth::user();
-
-        if ($user) {
-            Log::info('User logged out', [
-                'user_id' => $user->id,
-                'email' => $user->email,
-                'role' => $user->role,
-                'ip' => $request->ip()
-            ]);
-        }
-
+    
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();

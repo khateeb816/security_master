@@ -72,14 +72,7 @@ class CheckpointController extends Controller
      */
     public function store(Request $request, $clientId, $branchId)
     {
-        // Log the incoming request data
-        Log::info('Checkpoint store request', [
-            'client_id' => $clientId,
-            'branch_id' => $branchId,
-            'request_data' => $request->all(),
-            'user_agent' => $request->userAgent(),
-            'ip' => $request->ip()
-        ]);
+
 
         $validated = $request->validate([
             'branch_id' => 'required|exists:branches,id',
@@ -92,25 +85,9 @@ class CheckpointController extends Controller
             'is_active' => 'sometimes|boolean',
         ]);
 
-        // Log validation results
-        Log::info('Checkpoint validation passed', [
-            'validated_data' => $validated
-        ]);
 
         try {
             DB::beginTransaction();
-
-            // Log the data being inserted
-            Log::info('Creating checkpoint with data', [
-                'branch_id' => $validated['branch_id'],
-                'client_id' => $validated['client_id'],
-                'name' => $validated['name'],
-                'description' => $validated['description'] ?? null,
-                'latitude' => $validated['latitude'] ?? null,
-                'longitude' => $validated['longitude'] ?? null,
-                'radius' => $validated['radius'],
-                'is_active' => $request->has('is_active') ? $validated['is_active'] : false,
-            ]);
 
             $checkpoint = Checkpoint::create([
                 'branch_id' => $validated['branch_id'],
@@ -125,11 +102,6 @@ class CheckpointController extends Controller
 
             DB::commit();
 
-            // Log successful creation
-            Log::info('Checkpoint created successfully', [
-                'checkpoint_id' => $checkpoint->id,
-                'checkpoint_data' => $checkpoint->toArray()
-            ]);
 
             if ($request->wantsJson()) {
                 return response()->json([
@@ -147,16 +119,6 @@ class CheckpointController extends Controller
             ])->with('success', 'Checkpoint added successfully.');
         } catch (\Exception $e) {
             DB::rollBack();
-
-            // Log the detailed error
-            Log::error('Failed to save checkpoint', [
-                'error_message' => $e->getMessage(),
-                'error_file' => $e->getFile(),
-                'error_line' => $e->getLine(),
-                'error_trace' => $e->getTraceAsString(),
-                'request_data' => $request->all(),
-                'validated_data' => $validated ?? null
-            ]);
 
             if ($request->wantsJson()) {
                 return response()->json([
