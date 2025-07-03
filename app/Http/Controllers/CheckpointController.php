@@ -21,8 +21,18 @@ class CheckpointController extends Controller
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\View\View|\Illuminate\Http\JsonResponse|\Illuminate\Http\RedirectResponse
      */
-    public function index(Request $request)
+    public function index(Request $request, $clientId = null, $branchId = null)
     {
+        // If this is an AJAX/JSON request for checkpoints of a branch
+        if ($request->wantsJson() || $request->ajax()) {
+            if ($branchId) {
+                $checkpoints = \App\Models\Checkpoint::where('branch_id', $branchId)->get();
+                return response()->json(['checkpoints' => $checkpoints]);
+            } else {
+                return response()->json(['checkpoints' => []]);
+            }
+        }
+
         $clients = User::where('role', 'client')->orderBy('name')->get();
         $branches = collect();
         $checkpointsQuery = Checkpoint::with(['branch.client']);

@@ -16,6 +16,13 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
+// Get authenticated user details
+// GET /api/user
+// Headers:
+//   - Authorization: Bearer {token}
+// Response:
+//   - 200: Returns authenticated user details
+//   - 401: Unauthorized if invalid/missing token
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });

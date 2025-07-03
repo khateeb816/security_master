@@ -1,9 +1,16 @@
 <?php
 
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+
+//Optimize Route
+Route::get('/optimize', function () {
+    Artisan::call('optimize');
+    return 'Optimized';
+});
 
 // Authentication Routes
 Route::get('/login', [\App\Http\Controllers\AuthController::class, 'showLoginForm'])->name('login');
