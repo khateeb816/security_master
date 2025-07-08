@@ -1,0 +1,233 @@
+openapi: 3.0.0
+info:
+  title: Security API
+  version: 1.0.0
+servers:
+  - url: http://localhost:8000
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+security:
+  - bearerAuth: []
+paths:
+  /api/guard/login:
+    post:
+      summary: Guard Login
+      description: Authenticates a guard and returns a token if within checkpoint area.
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  example: guard@example.com
+                password:
+                  type: string
+                  example: password
+                latitude:
+                  type: number
+                  example: 12.9716
+                longitude:
+                  type: number
+                  example: 77.5946
+      responses:
+        '200':
+          description: Login successful
+        '401':
+          description: Invalid credentials
+        '403':
+          description: Not in checkpoint area
+
+  /api/guard/checkpoints:
+    get:
+      summary: Show Checkpoints
+      description: Get all checkpoints assigned to the authenticated guard for today.
+      responses:
+        '200':
+          description: List of checkpoints
+        '401':
+          description: Unauthorized
+
+  /api/guard/checkpoint/clear:
+    post:
+      summary: Clear Checkpoint
+      description: Mark a checkpoint as cleared by a guard, with media upload (base64).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                checkpoint_id:
+                  type: integer
+                  example: 1
+                latitude:
+                  type: number
+                  example: 12.9716
+                longitude:
+                  type: number
+                  example: 77.5946
+                time:
+                  type: string
+                  example: '2024-07-01T12:00:00Z'
+                media:
+                  type: object
+                  properties:
+                    type:
+                      type: string
+                      example: audio/mp3
+                    base64:
+                      type: string
+                      example: AAAAGGZ0eXBtcDQyAAAAAGlzb...
+      responses:
+        '200':
+          description: Checkpoint cleared
+        '400':
+          description: Not within checkpoint area
+        '401':
+          description: Invalid or expired token
+        '404':
+          description: Checkpoint not found
+
+  /api/guard/incident:
+    post:
+      summary: Store Incident
+      description: Report an incident with media (base64).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                latitude:
+                  type: number
+                  example: 12.9716
+                longitude:
+                  type: number
+                  example: 77.5946
+                time:
+                  type: string
+                  example: '2024-07-01T12:00:00Z'
+                type:
+                  type: string
+                  example: audio
+                message:
+                  type: string
+                  example: Test incident
+                media:
+                  type: object
+                  properties:
+                    type:
+                      type: string
+                      example: audio/mp3
+                    base64:
+                      type: string
+                      example: AAAAGGZ0eXBtcDQyAAAAAGlzb...
+      responses:
+        '201':
+          description: Incident reported
+        '401':
+          description: Unauthorized
+        '500':
+          description: Failed to store incident
+
+  /api/guard/incidents/show:
+    get:
+      summary: Show Incidents
+      description: Get all incidents for today for the authenticated guard.
+      responses:
+        '200':
+          description: List of incidents
+        '401':
+          description: Unauthorized
+    post:
+      summary: Show Incidents by Date
+      description: Get all incidents for the authenticated guard for a specific date.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                date:
+                  type: string
+                  example: '2024-07-01'
+      responses:
+        '200':
+          description: List of incidents for the date
+        '401':
+          description: Unauthorized
+
+  /api/guard/alert:
+    post:
+      summary: Store Alert
+      description: Create a new alert for the authenticated guard.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                longitude:
+                  type: number
+                  example: 77.5946
+                latitude:
+                  type: number
+                  example: 12.9716
+                time:
+                  type: string
+                  example: '2024-07-01T12:00:00Z'
+                type:
+                  type: string
+                  example: alert
+                message:
+                  type: string
+                  example: Test alert
+      responses:
+        '201':
+          description: Alert created
+        '401':
+          description: Unauthorized
+        '500':
+          description: Failed to create alert
+
+  /api/guard/checkpoints/show:
+    post:
+      summary: Show Checkpoints by Date
+      description: Get all checkpoints for the authenticated guard for a specific date.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                date:
+                  type: string
+                  example: '2024-07-01'
+      responses:
+        '200':
+          description: List of checkpoints for the date
+        '401':
+          description: Unauthorized
+
+  /api/guard/logout:
+    get:
+      summary: Logout
+      description: Logout the authenticated guard and revoke tokens.
+      responses:
+        '200':
+          description: Successfully logged out
+        '401':
+          description: User not authenticated

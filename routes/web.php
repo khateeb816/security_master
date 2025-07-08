@@ -12,6 +12,12 @@ Route::get('/optimize', function () {
     return 'Optimized';
 });
 
+//Link Storage
+Route::get('/link-storage', function () {
+    Artisan::call('storage:link');
+    return 'Storage Linked';
+});
+
 // Authentication Routes
 Route::get('/login', [\App\Http\Controllers\AuthController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [\App\Http\Controllers\AuthController::class, 'login']);

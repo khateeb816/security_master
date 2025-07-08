@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use App\Models\alert;
+use Illuminate\Support\Facades\Storage;
 
 class ApiController extends Controller
 {
@@ -29,6 +30,7 @@ class ApiController extends Controller
             $checkpoints = AssignCheckpoint::where('guard_id', $user->id)
                 ->where('date_to_check', today())
                 ->with('checkpoint')
+                ->orderBy('priority', 'desc')
                 ->get();
 
 
@@ -48,14 +50,15 @@ class ApiController extends Controller
                     $checkpoint->latitude,
                     $checkpoint->longitude
                 );
-               
+
 
                 if ($distance <= $checkpoint->radius) {
                     $token = $user->createToken('auth-token')->plainTextToken;
                     return response()->json([
                         'success' => true,
                         'token' => $token,
-                        'message' => 'Login Successful'
+                        'message' => 'Login Successful',
+                        'user' => $user
                     ], 200);
                 }
             }
@@ -96,7 +99,8 @@ class ApiController extends Controller
                         'longitude' => $assignCheckpoint->checkpoint->longitude,
                         'radius' => $assignCheckpoint->checkpoint->radius,
                         'status' => $assignCheckpoint->status,
-                        'time' => $assignCheckpoint->time_to_check
+                        'time' => $assignCheckpoint->time_to_check,
+                        'priority' => $assignCheckpoint->priority,
                     ];
                 });
 
@@ -162,11 +166,21 @@ class ApiController extends Controller
                 ], 400);
             }
 
-            // Store full media json
-            $mediaJson = json_encode([
-                'type' => $request->media['type'],
-                'path' => $request->media['path']
-            ]);
+            // Store full media json (handle base64)
+            if (isset($request->media['base64']) && isset($request->media['type'])) {
+                $mediaType = $request->media['type'];
+                $base64String = $request->media['base64'];
+                $extension = explode('/', $mediaType)[1] ?? 'bin';
+                $fileName = uniqid('media_') . '.' . $extension;
+                $filePath = 'checkpoints/' . $fileName;
+                Storage::disk('public')->put($filePath, base64_decode($base64String));
+                $mediaJson = json_encode([
+                    'type' => $mediaType,
+                    'path' => $filePath
+                ]);
+            } else {
+                $mediaJson = null;
+            }
 
             // Update checkpoint details
             $assignCheckpoint->longitude = $request->longitude;
@@ -184,7 +198,7 @@ class ApiController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Checkpoint cleared successfully',
-                'status' => $assignCheckpoint->status
+                'checkpoint' => $assignCheckpoint
             ], 200);
 
         } catch (\Exception $e) {
@@ -213,11 +227,21 @@ class ApiController extends Controller
                     'message' => 'Unauthorized'
                 ], 401);
             }
-            // Store full media json
-            $mediaJson = json_encode([
-                'type' => $request->media['type'],
-                'path' => $request->media['path']
-            ]);
+            // Store full media json (handle base64)
+            if (isset($request->media['base64']) && isset($request->media['type'])) {
+                $mediaType = $request->media['type'];
+                $base64String = $request->media['base64'];
+                $extension = explode('/', $mediaType)[1] ?? 'bin';
+                $fileName = uniqid('media_') . '.' . $extension;
+                $filePath = 'incident/' . $fileName;
+                Storage::disk('public')->put($filePath, base64_decode($base64String));
+                $mediaJson = json_encode([
+                    'type' => $mediaType,
+                    'path' => $filePath
+                ]);
+            } else {
+                $mediaJson = null;
+            }
 
             $incident = new \App\Models\incident();
             $incident->longitude = $request->longitude;
