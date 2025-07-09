@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use App\Models\alert;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 
 class ApiController extends Controller
@@ -124,7 +125,9 @@ class ApiController extends Controller
             'longitude' => 'required',
             'latitude' => 'required',
             'time' => 'required',
-            'media' => 'required'
+            'image' => 'nullable',
+            'video' => 'nullable',
+            'audio' => 'nullable'
         ]);
 
         try {
@@ -166,27 +169,62 @@ class ApiController extends Controller
                 ], 400);
             }
 
-            // Store full media json (handle base64)
-            if (isset($request->media['base64']) && isset($request->media['type'])) {
-                $mediaType = $request->media['type'];
-                $base64String = $request->media['base64'];
-                $extension = explode('/', $mediaType)[1] ?? 'bin';
-                $fileName = uniqid('media_') . '.' . $extension;
+            // Store full image json (handle base64)
+            if (isset($request->image['base64']) && isset($request->image['type'])) {
+                $imageType = $request->image['type'];
+                $base64String = $request->image['base64'];
+                $extension = explode('/', $imageType)[1] ?? 'bin';
+                $fileName = uniqid('image_') . '.' . $extension;
                 $filePath = 'checkpoints/' . $fileName;
                 Storage::disk('public')->put($filePath, base64_decode($base64String));
-                $mediaJson = json_encode([
-                    'type' => $mediaType,
+                $imageJson = json_encode([
+                    'type' => $imageType,
                     'path' => $filePath
                 ]);
             } else {
-                $mediaJson = null;
+                $imageJson = null;
+            }
+
+            // Store full videos json (handle base64)
+            if (isset($request->video['base64']) && isset($request->video['type'])) {
+                $videoType = $request->video['type'];
+                $base64String = $request->video['base64'];
+                $extension = explode('/', $videoType)[1] ?? 'bin';
+                $fileName = uniqid('video_') . '.' . $extension;
+                $filePath = 'checkpoints/' . $fileName;
+                Storage::disk('public')->put($filePath, base64_decode($base64String));
+                $videoJson = json_encode([
+                    'type' => $videoType,
+                    'path' => $filePath
+                ]);
+            } else {
+                $videoJson = null;
+            }
+
+            // Store full image json (handle base64)
+            if (isset($request->audio['base64']) && isset($request->audio['type'])) {
+                $audioType = $request->audio['type'];
+                $base64String = $request->audio['base64'];
+                $extension = explode('/', $audioType)[1] ?? 'bin';
+                $fileName = uniqid('audio_') . '.' . $extension;
+                $filePath = 'checkpoints/' . $fileName;
+                Storage::disk('public')->put($filePath, base64_decode($base64String));
+                $audioJson = json_encode([
+                    'type' => $audioType,
+                    'path' => $filePath
+                ]);
+            } else {
+                $audioJson = null;
             }
 
             // Update checkpoint details
             $assignCheckpoint->longitude = $request->longitude;
             $assignCheckpoint->latitude = $request->latitude;
             $assignCheckpoint->checked_time = $request->time;
-            $assignCheckpoint->media = $mediaJson;
+            $assignCheckpoint->notes = $request->notes;
+            $assignCheckpoint->images = $imageJson;
+            $assignCheckpoint->videos = $videoJson;
+            $assignCheckpoint->audios = $audioJson;
 
             // Check if checkpoint was cleared on time
             $checkTime = Carbon::parse($request->time);
@@ -215,7 +253,9 @@ class ApiController extends Controller
             'longitude' => 'required',
             'latitude' => 'required',
             'time' => 'required',
-            'media' => 'required',
+            'image' => 'nullable',
+            'video' => 'nullable',
+            'audio' => 'nullable',
             'type' => 'required',
             'message' => 'nullable'
         ]);
@@ -227,28 +267,62 @@ class ApiController extends Controller
                     'message' => 'Unauthorized'
                 ], 401);
             }
-            // Store full media json (handle base64)
-            if (isset($request->media['base64']) && isset($request->media['type'])) {
-                $mediaType = $request->media['type'];
-                $base64String = $request->media['base64'];
-                $extension = explode('/', $mediaType)[1] ?? 'bin';
-                $fileName = uniqid('media_') . '.' . $extension;
-                $filePath = 'incident/' . $fileName;
-                Storage::disk('public')->put($filePath, base64_decode($base64String));
-                $mediaJson = json_encode([
-                    'type' => $mediaType,
-                    'path' => $filePath
-                ]);
-            } else {
-                $mediaJson = null;
-            }
+           // Store full image json (handle base64)
+           if (isset($request->image['base64']) && isset($request->image['type'])) {
+            $imageType = $request->image['type'];
+            $base64String = $request->image['base64'];
+            $extension = explode('/', $imageType)[1] ?? 'bin';
+            $fileName = uniqid('image_') . '.' . $extension;
+            $filePath = 'checkpoints/' . $fileName;
+            Storage::disk('public')->put($filePath, base64_decode($base64String));
+            $imageJson = json_encode([
+                'type' => $imageType,
+                'path' => $filePath
+            ]);
+        } else {
+            $imageJson = null;
+        }
 
+        // Store full videos json (handle base64)
+        if (isset($request->video['base64']) && isset($request->video['type'])) {
+            $videoType = $request->video['type'];
+            $base64String = $request->video['base64'];
+            $extension = explode('/', $videoType)[1] ?? 'bin';
+            $fileName = uniqid('video_') . '.' . $extension;
+            $filePath = 'checkpoints/' . $fileName;
+            Storage::disk('public')->put($filePath, base64_decode($base64String));
+            $videoJson = json_encode([
+                'type' => $videoType,
+                'path' => $filePath
+            ]);
+        } else {
+            $videoJson = null;
+        }
+
+        // Store full image json (handle base64)
+        if (isset($request->audio['base64']) && isset($request->audio['type'])) {
+            $audioType = $request->audio['type'];
+            $base64String = $request->audio['base64'];
+            $extension = explode('/', $audioType)[1] ?? 'bin';
+            $fileName = uniqid('audio_') . '.' . $extension;
+            $filePath = 'checkpoints/' . $fileName;
+            Storage::disk('public')->put($filePath, base64_decode($base64String));
+            $audioJson = json_encode([
+                'type' => $audioType,
+                'path' => $filePath
+            ]);
+        } else {
+            $audioJson = null;
+        }
             $incident = new \App\Models\incident();
             $incident->longitude = $request->longitude;
             $incident->latitude = $request->latitude;
             $incident->time = $request->time;
-            $incident->media = $mediaJson;
+            $incident->images = $imageJson;
+            $incident->videos = $videoJson;
+            $incident->audios = $audioJson;
             $incident->type = $request->type;
+            $incident->status = 'active';
             $incident->message = $request->message;
             $incident->user_id = $user->id;
             $incident->save();
@@ -436,5 +510,57 @@ class ApiController extends Controller
         }
     }
 
+    public function updateGuardProfile(Request $request){
+        $user = auth('sanctum')->user();
 
+        if(!$user){
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized'
+            ], 401);
+        }
+
+        $request->validate([
+            'name' => 'nullable',
+            'email' => 'nullable|email',
+            'phone' => 'nullable',
+            'address' => 'nullable',
+            'city' => 'nullable',
+            'state' => 'nullable',
+            'zip' => 'nullable',
+            'language' => 'nullable',
+            'cnic' => 'nullable',
+            'country' => 'nullable',
+            'password' => 'nullable',
+            'confirm_password' => 'nullable|same:password'
+        ]);
+
+        try {
+            $user->name = $request->name;
+            $user->email = $request->email;
+            $user->phone = $request->phone;
+            $user->address = $request->address;
+            $user->city = $request->city;
+            $user->state = $request->state;
+            $user->zip = $request->zip;
+            $user->language = $request->language;
+            $user->cnic = $request->cnic;
+            $user->country = $request->country;
+            if($request->password){
+                $user->password = Hash::make($request->password);
+            }
+            $user->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Profile updated successfully',
+                'user' => $user
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update profile: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }

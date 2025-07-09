@@ -20,7 +20,9 @@ return new class extends Migration
             $table->string('checked_time')->nullable();
             $table->string('status')->default('pending');
             $table->integer('priority')->default(0);
-            $table->json('media')->nullable();//{type , url}
+            $table->json('images')->nullable();//{type , url}
+            $table->json('videos')->nullable();//{type , url}
+            $table->json('audios')->nullable();//{type , url}
             $table->string('nfc_tag')->nullable();
             $table->string('notes')->nullable();
             $table->string('longitude')->nullable();

@@ -16,13 +16,16 @@ class incident extends Model
         'type',
         'status',
         'priority',
-        'media',
+        'images',
+        'videos',
+        'audios',
         'message'
     ];
 
     protected $casts = [
-        'media' => 'json',
-        'time' => 'datetime'
+        'images' => 'json',
+        'videos' => 'json',
+        'audios' => 'json',
     ];
 
     public function user()

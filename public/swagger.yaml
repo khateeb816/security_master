@@ -27,16 +27,16 @@ paths:
               properties:
                 email:
                   type: string
-                  example: guard@example.com
+                  example: cghf@hn.com
                 password:
                   type: string
-                  example: password
+                  example: 12345678
                 latitude:
                   type: number
-                  example: 12.9716
+                  example: 37.7749
                 longitude:
                   type: number
-                  example: 77.5946
+                  example: -122.4194
       responses:
         '200':
           description: Login successful
@@ -58,28 +58,54 @@ paths:
   /api/guard/checkpoint/clear:
     post:
       summary: Clear Checkpoint
-      description: Mark a checkpoint as cleared by a guard, with media upload (base64).
+      description: Mark a checkpoint as cleared by a guard, with separate media uploads (base64).
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
+              required:
+                - checkpoint_id
+                - longitude
+                - latitude
+                - time
               properties:
                 checkpoint_id:
                   type: integer
                   example: 1
                 latitude:
                   type: number
-                  example: 12.9716
+                  example: 37.7749
                 longitude:
                   type: number
-                  example: 77.5946
+                  example: -122.4194
                 time:
                   type: string
                   example: '2024-07-01T12:00:00Z'
-                media:
+                image:
                   type: object
+                  description: Image file in base64 format
+                  properties:
+                    type:
+                      type: string
+                      example: image/jpeg
+                    base64:
+                      type: string
+                      example: /9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k=
+                video:
+                  type: object
+                  description: Video file in base64 format
+                  properties:
+                    type:
+                      type: string
+                      example: video/mp4
+                    base64:
+                      type: string
+                      example: AAAAGGZ0eXBtcDQyAAAAAGlzb...
+                audio:
+                  type: object
+                  description: Audio file in base64 format
                   properties:
                     type:
                       type: string
@@ -100,13 +126,18 @@ paths:
   /api/guard/incident:
     post:
       summary: Store Incident
-      description: Report an incident with media (base64).
+      description: Report an incident with separate media uploads (base64).
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
+              required:
+                - longitude
+                - latitude
+                - time
+                - type
               properties:
                 latitude:
                   type: number
@@ -123,8 +154,29 @@ paths:
                 message:
                   type: string
                   example: Test incident
-                media:
+                image:
                   type: object
+                  description: Image file in base64 format
+                  properties:
+                    type:
+                      type: string
+                      example: image/jpeg
+                    base64:
+                      type: string
+                      example: /9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k=
+                video:
+                  type: object
+                  description: Video file in base64 format
+                  properties:
+                    type:
+                      type: string
+                      example: video/mp4
+                    base64:
+                      type: string
+                      example: AAAAGGZ0eXBtcDQyAAAAAGlzb...
+                audio:
+                  type: object
+                  description: Audio file in base64 format
                   properties:
                     type:
                       type: string
@@ -161,7 +213,7 @@ paths:
               properties:
                 date:
                   type: string
-                  example: '2024-07-01'
+                  example: '2025-07-09'
       responses:
         '200':
           description: List of incidents for the date
@@ -215,7 +267,7 @@ paths:
               properties:
                 date:
                   type: string
-                  example: '2024-07-01'
+                  example: '2025-07-09'
       responses:
         '200':
           description: List of checkpoints for the date
@@ -231,3 +283,58 @@ paths:
           description: Successfully logged out
         '401':
           description: User not authenticated
+
+  /api/guard/profile/update:
+    post:
+      summary: Update Guard Profile
+      description: Update the authenticated guard's profile information. All fields are optional. If changing password, both password and confirm_password must be provided and must match.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  example: John Doe
+                email:
+                  type: string
+                  example: cghf@hn.com
+                phone:
+                  type: string
+                  example: '03001234567'
+                address:
+                  type: string
+                  example: 123 Main St
+                city:
+                  type: string
+                  example: San Francisco
+                state:
+                  type: string
+                  example: CA
+                zip:
+                  type: string
+                  example: '94105'
+                language:
+                  type: string
+                  example: English
+                cnic:
+                  type: string
+                  example: 12345-6789012-3
+                country:
+                  type: string
+                  example: USA
+                password:
+                  type: string
+                  example: 12345678
+                confirm_password:
+                  type: string
+                  example: 12345678
+      responses:
+        '200':
+          description: Profile updated successfully
+        '401':
+          description: Unauthorized
+        '500':
+          description: Failed to update profile

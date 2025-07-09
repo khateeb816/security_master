@@ -51,5 +51,8 @@ Route::post('guard/checkpoints/show' , [ApiController::class , 'showCheckpointsb
 //show Incidents of user by date
 Route::post('guard/incidents/show' , [ApiController::class , 'showIncidentsbyDate']);
 
+// update Guard profile
+Route::post('guard/profile/update' , [ApiController::class , 'updateGuardProfile']);
+
 //logout
 Route::get('guard/logout' , [ApiController::class , 'logout']);

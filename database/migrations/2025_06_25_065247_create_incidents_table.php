@@ -16,9 +16,12 @@ return new class extends Migration
             $table->decimal('latitude', 10, 8)->nullable();
             $table->decimal('longitude', 11, 8)->nullable();
             $table->integer('user_id');
-            $table->time('time');
+            $table->string('time');
             $table->string('type'); //normal, urgent, etc
-            $table->json('media'); //{type , url}
+            $table->string('status'); //pending, checked, etc
+            $table->json('images')->nullable();//{type , url}
+            $table->json('videos')->nullable();//{type , url}
+            $table->json('audios')->nullable();//{type , url}
             $table->text('message')->nullable();
             $table->timestamps();
         });

@@ -21,10 +21,6 @@ class Alert extends Model
         'time'
     ];
 
-    protected $casts = [
-        'time' => 'datetime'
-    ];
-
     public function user()
     {
         return $this->belongsTo(User::class);
