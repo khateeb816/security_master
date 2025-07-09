@@ -72,6 +72,11 @@
                                         @else
                                             <span class="text-muted">N/A</span>
                                         @endif
+                                        <button type="button"
+                                            class="btn btn-sm btn-primary mt-1"
+                                            onclick="showIncidentMedia({{ $incident->id }}, '{{ $incident->images }}', '{{ $incident->videos }}', '{{ $incident->audios }}')">
+                                            Show Media
+                                        </button>
                                     </td>
                                 </tr>
                             @empty
@@ -158,6 +163,21 @@
         </div>
     </div>
 
+    <!-- Incident Media Modal -->
+    <div class="modal fade" id="incidentMediaModal" tabindex="-1" aria-labelledby="incidentMediaModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="incidentMediaModalLabel">Incident Media</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" id="incidentMediaContent">
+                    <!-- Media will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
@@ -178,6 +198,34 @@
             L.marker([lat, lng]).addTo(window.incidentMapInstance)
                 .bindPopup('Incident Location').openPopup();
         }, 300); // Wait for modal to render
+    }
+
+    function showIncidentMedia(id, images, videos, audios) {
+        let content = '';
+        function safeParse(json) {
+            try { return JSON.parse(json); } catch { return null; }
+        }
+        // Images
+        const imageObj = safeParse(images);
+        if (imageObj && imageObj.path) {
+            content += `<div><strong>Image:</strong><br><img src='${imageObj.path}' alt='Incident Image' style='max-width:100%;height:auto;'/></div><hr>`;
+        }
+        // Videos
+        const videoObj = safeParse(videos);
+        if (videoObj && videoObj.path) {
+            content += `<div><strong>Video:</strong><br><video controls style='max-width:100%;height:auto;'><source src='${videoObj.path}' type='${videoObj.type}'></video></div><hr>`;
+        }
+        // Audios
+        const audioObj = safeParse(audios);
+        if (audioObj && audioObj.path) {
+            content += `<div><strong>Audio:</strong><br><audio controls style='width:100%;'><source src='${audioObj.path}' type='${audioObj.type}'></audio></div>`;
+        }
+        if (!content) {
+            content = '<div class="text-muted">No media available for this incident.</div>';
+        }
+        document.getElementById('incidentMediaContent').innerHTML = content;
+        var modal = new bootstrap.Modal(document.getElementById('incidentMediaModal'));
+        modal.show();
     }
     </script>
 @endsection

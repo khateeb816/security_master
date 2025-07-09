@@ -18,6 +18,12 @@ class ClientController extends Controller
 
    public function store(StoreClientRequest $request)
 {
+    $request->validate([
+        'name' => 'required',
+        'email' => 'required|email|unique:users',
+        'phone' => 'required',
+        'status' => 'required',
+    ]);
     // Create the user
     User::create([
         'name' => $request->name,

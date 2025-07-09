@@ -81,6 +81,7 @@ class DashboardController extends Controller
                     'color' => 'text-warning',
                     'message' => "Incident reported: $mainText",
                     'time' => $incident->created_at->diffForHumans(),
+                    'timestamp' => $incident->created_at->timestamp,
                     'badge_color' => 'bg-warning text-dark',
                     'badge_text' => $incident->status
                 ];
@@ -99,6 +100,7 @@ class DashboardController extends Controller
                     'color' => 'text-success',
                     'message' => "Patrol completed: {$assignment->checkpoint->name}",
                     'time' => $assignment->updated_at->diffForHumans(),
+                    'timestamp' => $assignment->updated_at->timestamp,
                     'badge_color' => 'bg-success',
                     'badge_text' => 'Completed'
                 ];
@@ -117,17 +119,19 @@ class DashboardController extends Controller
                     'color' => 'text-danger',
                     'message' => "Alert: $mainText",
                     'time' => $alert->created_at->diffForHumans(),
+                    'timestamp' => $alert->created_at->timestamp,
                     'badge_color' => $alert->status === 'read' ? 'bg-secondary' : 'bg-danger',
                     'badge_text' => $alert->status === 'read' ? 'Read' : 'New'
                 ];
             });
 
-        // Merge and sort by time
-        $activities = $recentIncidents->merge($recentCheckpoints)->merge($recentAlerts);
-
-        return $activities->sortByDesc(function ($activity) {
-            return $activity['time'];
-        })->take(8);
+        // Merge and sort by timestamp using array_merge to avoid getKey() on array error
+        $activities = array_merge(
+            $recentIncidents->all(),
+            $recentCheckpoints->all(),
+            $recentAlerts->all()
+        );
+        return collect($activities)->sortByDesc('timestamp')->take(8)->values();
     }
 
     private function getSystemStatus()

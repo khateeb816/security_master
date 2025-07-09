@@ -10,7 +10,7 @@ use App\Models\AssignCheckpoint;
 use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
-use App\Models\alert;
+use App\Models\Alert;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 
@@ -175,8 +175,8 @@ class ApiController extends Controller
                 $base64String = $request->image['base64'];
                 $extension = explode('/', $imageType)[1] ?? 'bin';
                 $fileName = uniqid('image_') . '.' . $extension;
-                $filePath = 'checkpoints/' . $fileName;
-                Storage::disk('public')->put($filePath, base64_decode($base64String));
+                $filePath = 'uploads/checkpoints/' . $fileName;
+                file_put_contents(public_path($filePath), base64_decode($base64String));
                 $imageJson = json_encode([
                     'type' => $imageType,
                     'path' => $filePath
@@ -191,8 +191,8 @@ class ApiController extends Controller
                 $base64String = $request->video['base64'];
                 $extension = explode('/', $videoType)[1] ?? 'bin';
                 $fileName = uniqid('video_') . '.' . $extension;
-                $filePath = 'checkpoints/' . $fileName;
-                Storage::disk('public')->put($filePath, base64_decode($base64String));
+                $filePath = 'uploads/checkpoints/' . $fileName;
+                file_put_contents(public_path($filePath), base64_decode($base64String));
                 $videoJson = json_encode([
                     'type' => $videoType,
                     'path' => $filePath
@@ -207,8 +207,8 @@ class ApiController extends Controller
                 $base64String = $request->audio['base64'];
                 $extension = explode('/', $audioType)[1] ?? 'bin';
                 $fileName = uniqid('audio_') . '.' . $extension;
-                $filePath = 'checkpoints/' . $fileName;
-                Storage::disk('public')->put($filePath, base64_decode($base64String));
+                $filePath = 'uploads/checkpoints/' . $fileName;
+                file_put_contents(public_path($filePath), base64_decode($base64String));
                 $audioJson = json_encode([
                     'type' => $audioType,
                     'path' => $filePath
@@ -273,8 +273,8 @@ class ApiController extends Controller
             $base64String = $request->image['base64'];
             $extension = explode('/', $imageType)[1] ?? 'bin';
             $fileName = uniqid('image_') . '.' . $extension;
-            $filePath = 'checkpoints/' . $fileName;
-            Storage::disk('public')->put($filePath, base64_decode($base64String));
+            $filePath = 'uploads/incidents/' . $fileName;
+            file_put_contents(public_path($filePath), base64_decode($base64String));
             $imageJson = json_encode([
                 'type' => $imageType,
                 'path' => $filePath
@@ -289,8 +289,8 @@ class ApiController extends Controller
             $base64String = $request->video['base64'];
             $extension = explode('/', $videoType)[1] ?? 'bin';
             $fileName = uniqid('video_') . '.' . $extension;
-            $filePath = 'checkpoints/' . $fileName;
-            Storage::disk('public')->put($filePath, base64_decode($base64String));
+            $filePath = 'uploads/incidents/' . $fileName;
+            file_put_contents(public_path($filePath), base64_decode($base64String));
             $videoJson = json_encode([
                 'type' => $videoType,
                 'path' => $filePath
@@ -305,8 +305,8 @@ class ApiController extends Controller
             $base64String = $request->audio['base64'];
             $extension = explode('/', $audioType)[1] ?? 'bin';
             $fileName = uniqid('audio_') . '.' . $extension;
-            $filePath = 'checkpoints/' . $fileName;
-            Storage::disk('public')->put($filePath, base64_decode($base64String));
+            $filePath = 'uploads/incidents/' . $fileName;
+            file_put_contents(public_path($filePath), base64_decode($base64String));
             $audioJson = json_encode([
                 'type' => $audioType,
                 'path' => $filePath
@@ -389,7 +389,7 @@ class ApiController extends Controller
         ]);
 
         try {
-            $alert = alert::create([
+            $alert = Alert::create([
                 'longitude' => $request->longitude,
                 'latitude' => $request->latitude,
                 'time' => $request->time,
