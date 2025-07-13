@@ -57,8 +57,8 @@ class DashboardController extends Controller
             'active_checkpoints' => Checkpoint::where('is_active', true)->count(),
             'total_clients' => User::where('role', 'client')->count(),
             'total_branches' => Branch::count(),
-            'completed_patrols' => AssignCheckpoint::where('status', 'completed')->count(),
-            'pending_patrols' => AssignCheckpoint::where('status', 'pending')->count(),
+            'completed_patrols' => AssignCheckpoint::count(),
+            'pending_patrols' => 0,
             'total_alerts' => Alert::count(),
             'unread_alerts' => Alert::where('status', 'unread')->count(),
         ];
@@ -89,7 +89,6 @@ class DashboardController extends Controller
 
         // Recent checkpoint completions
         $recentCheckpoints = AssignCheckpoint::with(['checkpoint', 'assignedGuard'])
-            ->where('status', 'completed')
             ->latest('updated_at')
             ->take(5)
             ->get()
@@ -98,11 +97,11 @@ class DashboardController extends Controller
                     'type' => 'checkpoint',
                     'icon' => 'fas fa-check',
                     'color' => 'text-success',
-                    'message' => "Patrol completed: {$assignment->checkpoint->name}",
+                    'message' => "Patrol assigned: {$assignment->checkpoint->name}",
                     'time' => $assignment->updated_at->diffForHumans(),
                     'timestamp' => $assignment->updated_at->timestamp,
                     'badge_color' => 'bg-success',
-                    'badge_text' => 'Completed'
+                    'badge_text' => 'Assigned'
                 ];
             });
 

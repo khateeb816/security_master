@@ -93,10 +93,9 @@
                                     <th>Checkpoint Name</th>
                                     <th>Client</th>
                                     <th>Branch</th>
-                                    <th>Date to Check</th>
-                                    <th>Time to Check</th>
-                                    <th>Status</th>
-                                    <th>Priority</th>
+                                    <th>Date From</th>
+                                    <th>Date To</th>
+                                    <th>Notes</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
@@ -104,34 +103,23 @@
                                 @forelse($assignedCheckpoints as $index => $assignment)
                                 <tr>
                                     <td>{{ $loop->iteration }}</td>
-                                    <td>{{ $assignment->checkpoint->name }}</td>
+                                    <td>{{ $assignment->checkpoint->name ?? 'N/A' }}</td>
                                     <td>{{ $assignment->checkpoint->client->name ?? 'N/A' }}</td>
                                     <td>{{ $assignment->checkpoint->branch->name ?? 'N/A' }}</td>
-                                    <td>{{ $assignment->date_to_check ? \Carbon\Carbon::parse($assignment->date_to_check)->format('M d, Y') : 'N/A' }}</td>
-                                    <td>{{ $assignment->time_to_check ? \Carbon\Carbon::parse($assignment->time_to_check)->format('H:i') : 'N/A' }}</td>
-                                    <td>
-                                        <span class="badge bg-{{ $assignment->status === 'completed' ? 'success' : ($assignment->status === 'pending' ? 'warning' : 'secondary') }}">
-                                            {{ ucfirst($assignment->status ?? 'pending') }}
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <span class="badge bg-{{ $assignment->priority === 'high' ? 'danger' : ($assignment->priority === 'medium' ? 'warning' : 'info') }}">
-                                            {{ ucfirst($assignment->priority ?? 'normal') }}
-                                        </span>
-                                    </td>
+                                    <td>{{ $assignment->date_from ? \Carbon\Carbon::parse($assignment->date_from)->format('M d, Y') : 'N/A' }}</td>
+                                    <td>{{ $assignment->date_to ? \Carbon\Carbon::parse($assignment->date_to)->format('M d, Y') : 'N/A' }}</td>
+                                    <td>{{ $assignment->notes ?? 'N/A' }}</td>
                                     <td>
                                         <div class="d-flex gap-1">
                                             <button class="btn btn-warning btn-sm edit-assignment-btn"
                                                     title="Edit Assignment"
                                                     data-assignment-id="{{ $assignment->id }}"
                                                     data-checkpoint-id="{{ $assignment->checkpoint_id }}"
-                                                    data-client-id="{{ $assignment->checkpoint->client->id }}"
-                                                    data-branch-id="{{ $assignment->checkpoint->branch->id }}"
-                                                    data-priority="{{ $assignment->priority }}"
-                                                    data-date="{{ $assignment->date_to_check }}"
-                                                    data-time="{{ $assignment->time_to_check }}"
-                                                    data-notes="{{ $assignment->notes }}"
-                                            >
+                                                    data-client-id="{{ optional(optional($assignment->checkpoint)->client)->id }}"
+                                                    data-branch-id="{{ optional(optional($assignment->checkpoint)->branch)->id }}"
+                                                    data-date-from="{{ $assignment->date_from }}"
+                                                    data-date-to="{{ $assignment->date_to }}"
+                                                    data-notes="{{ $assignment->notes }}">
                                                 <i class="fas fa-edit"></i>
                                             </button>
                                             <form action="{{ route('guards.removeAssignment', $assignment->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to remove this assignment?');">
@@ -292,22 +280,14 @@
                     </div>
                     <div class="col-md-6">
                         <div class="mb-3">
-                            <label for="assign_priority" class="form-label">Priority</label>
-                            <input type="number" class="form-control" id="assign_priority" name="priority" value="0" min="0" required>
-                        </div>
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="mb-3">
-                            <label for="assign_date" class="form-label">Date to Check</label>
-                            <input type="date" class="form-control" id="assign_date" name="date" required>
+                            <label for="assign_date_from" class="form-label">Date From</label>
+                            <input type="date" class="form-control" id="assign_date_from" name="date_from" required>
                         </div>
                     </div>
                     <div class="col-md-6">
                         <div class="mb-3">
-                            <label for="assign_time" class="form-label">Time to Check</label>
-                            <input type="time" class="form-control" id="assign_time" name="time" required>
+                            <label for="assign_date_to" class="form-label">Date To</label>
+                            <input type="date" class="form-control" id="assign_date_to" name="date_to" required>
                         </div>
                     </div>
                 </div>
@@ -377,12 +357,13 @@ function showToast(type, message) {
 
 $(document).ready(function() {
     // Set default date to today
-    $('#assign_date').val(new Date().toISOString().split('T')[0]);
+    $('#assign_date_from').val(new Date().toISOString().split('T')[0]);
+    $('#assign_date_to').val(new Date().toISOString().split('T')[0]);
 
     // Set default time to current time
     const now = new Date();
     const timeString = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
-    $('#assign_time').val(timeString);
+    // $('#assign_time').val(timeString); // This line is removed as per the edit hint
 
     // Edit assignment button functionality
     $(document).on('click', '.edit-assignment-btn', function() {
@@ -390,21 +371,9 @@ $(document).ready(function() {
         const checkpointId = $(this).data('checkpoint-id');
         const clientId = $(this).data('client-id');
         const branchId = $(this).data('branch-id');
-        const priority = $(this).data('priority');
-        const date = $(this).data('date');
-        const time = $(this).data('time');
+        const dateFrom = $(this).data('date-from');
+        const dateTo = $(this).data('date-to');
         const notes = $(this).data('notes');
-
-        console.log('Edit assignment data:', {
-            assignmentId,
-            checkpointId,
-            clientId,
-            branchId,
-            priority,
-            date,
-            time,
-            notes
-        });
 
         // Set client
         $('#assign_client_id').val(clientId);
@@ -465,46 +434,25 @@ $(document).ready(function() {
 
                         // Now populate the other fields
                         $('#assignment_id').val(assignmentId);
-                        $('#assign_priority').val(priority);
 
-                        // Format and set the date (ensure it's in YYYY-MM-DD format)
-                        if (date) {
-                            const formattedDate = new Date(date).toISOString().split('T')[0];
-                            $('#assign_date').val(formattedDate);
-                            console.log('Setting date:', date, '→', formattedDate);
+                        // Format and set the date_from and date_to (ensure it's in YYYY-MM-DD format)
+                        if (dateFrom) {
+                            const formattedDateFrom = new Date(dateFrom).toISOString().split('T')[0];
+                            $('#assign_date_from').val(formattedDateFrom);
                         } else {
-                            console.log('No date provided');
+                            $('#assign_date_from').val('');
                         }
-
-                        // Format and set the time (ensure it's in HH:MM format)
-                        if (time) {
-                            // If time is in format like "14:30:00", extract just "14:30"
-                            const timeParts = time.split(':');
-                            const formattedTime = timeParts[0] + ':' + timeParts[1];
-                            $('#assign_time').val(formattedTime);
-                            console.log('Setting time:', time, '→', formattedTime);
+                        if (dateTo) {
+                            const formattedDateTo = new Date(dateTo).toISOString().split('T')[0];
+                            $('#assign_date_to').val(formattedDateTo);
                         } else {
-                            console.log('No time provided');
+                            $('#assign_date_to').val('');
                         }
-
                         $('#assign_notes').val(notes);
 
-                        // Debug: Check if fields are actually set
-                        setTimeout(() => {
-                            console.log('Form field values after setting:');
-                            console.log('Date field value:', $('#assign_date').val());
-                            console.log('Time field value:', $('#assign_time').val());
-                            console.log('Priority field value:', $('#assign_priority').val());
-                        }, 100);
-
-                        // Update modal title to indicate editing
-                        $('#assignCheckpointModalLabel').html('<i class="fas fa-edit me-1"></i> Edit Assignment for {{ $guard->name }}');
-
-                        // Update submit button text
-                        $('#assignCheckpointForm button[type="submit"]').text('Update Assignment');
-
-                        // Show the modal
-                        $('#assignCheckpointModal').modal('show');
+                        // Show the modal after populating fields
+                        var modal = new bootstrap.Modal(document.getElementById('assignCheckpointModal'));
+                        modal.show();
                     },
                     error: function(xhr, status, error) {
                         console.error('Error loading checkpoints:', xhr.responseText);

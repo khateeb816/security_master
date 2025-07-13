@@ -12,18 +12,9 @@ class AssignCheckpoint extends Model
     protected $fillable = [
         'checkpoint_id',
         'guard_id',
-        'date_to_check',
-        'time_to_check',
-        'checked_time',
-        'status',
-        'priority',
-        'images',
-        'videos',
-        'audios',
-        'nfc_tag',
+        'date_from',
+        'date_to',
         'notes',
-        'longitude',
-        'latitude',
     ];
 
     public function checkpoint()

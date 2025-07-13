@@ -28,7 +28,7 @@
                         <tbody>
                             <?php $__empty_1 = true; $__currentLoopData = $alerts; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $i => $alert): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
                                 <tr>
-                                    <td><?php echo e($i + 1 + (($alerts->currentPage() - 1) * $alerts->perPage())); ?></td>
+                                    <td><?php echo e($i + 1); ?></td>
                                     <td><?php echo e($alert->user->name ?? '-'); ?></td>
                                     <td><?php echo e($alert->type); ?></td>
                                     <td><?php echo e($alert->created_at->format('Y-m-d h:i A')); ?></td>
@@ -65,11 +65,6 @@
                     </table>
                 </div>
             </div>
-        </div>
-
-        <div class="mt-3">
-            <?php echo e($alerts->withQueryString()->links()); ?>
-
         </div>
     </div>
 

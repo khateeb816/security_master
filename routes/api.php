@@ -54,5 +54,14 @@ Route::post('guard/incidents/show' , [ApiController::class , 'showIncidentsbyDat
 // update Guard profile
 Route::post('guard/profile/update' , [ApiController::class , 'updateGuardProfile']);
 
+//last cleared checkpoint
+Route::get('guard/last-cleared-checkpoint' , [ApiController::class , 'lastClearedCheckpoint']);
+
+//active incidents
+Route::get('guard/active-incidents' , [ApiController::class , 'activeIncidents']);
+
 //logout
 Route::get('guard/logout' , [ApiController::class , 'logout']);
+
+//update incident status
+Route::post('guard/incident/update-status', [ApiController::class, 'updateIncidentStatus']);

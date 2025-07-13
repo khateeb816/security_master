@@ -40,6 +40,9 @@ Route::middleware(['auth', 'admin'])->group(function () {
         return view('edit');
     })->name('edit');
 
+    Route::get('/patrol-logs/pdf', [\App\Http\Controllers\GuardController::class, 'patrolLogsPdf'])->name('patrol.logs.pdf');
+    Route::get('/incidents/pdf', [\App\Http\Controllers\GuardController::class, 'incidentsPdf'])->name('incidents.pdf');
+
     // Branch Management Routes
     Route::get('/clients/{client}/branches', [\App\Http\Controllers\BranchController::class, 'getBranchesByClient'])->name('clients.branches');
 
@@ -91,6 +94,7 @@ Route::middleware(['auth', 'admin'])->group(function () {
                         Route::delete('/', [\App\Http\Controllers\CheckpointController::class, 'destroy'])->name('destroy');
                         Route::get('/edit', [\App\Http\Controllers\CheckpointController::class, 'edit'])->name('edit');
                         Route::get('/qrcode', [\App\Http\Controllers\CheckpointController::class, 'getQrCode'])->name('qrcode');
+                        Route::get('/qrcode/download', [\App\Http\Controllers\CheckpointController::class, 'downloadQrCode'])->name('qrcode.download');
                     });
                 });
             });

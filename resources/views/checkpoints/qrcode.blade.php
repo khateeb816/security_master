@@ -7,7 +7,16 @@
         {!! $qr !!}
     </div>
     <p class="lead">Scan this code at the checkpoint.</p>
+    <p class="lead">NFC UID: {{ $checkpoint->nfc_uid ?? 'N/A' }}</p>
+    <p class="lead">Check Point ID: {{ $checkpoint->id ?? 'N/A' }}</p>
     <div class="mt-3">
+        <a href="{{ route('clients.branches.checkpoints.qrcode.download', [
+            'client' => $checkpoint->client_id,
+            'branch' => $checkpoint->branch_id,
+            'checkpoint' => $checkpoint->id
+        ]) }}" class="btn btn-primary me-2">
+            <i class="fas fa-download"></i> Download QR Code
+        </a>
         <a href="{{ url()->previous() }}" class="btn btn-secondary">Back</a>
     </div>
 </div>

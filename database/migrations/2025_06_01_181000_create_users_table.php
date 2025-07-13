@@ -23,7 +23,7 @@ return new class extends Migration
             $table->string('language')->nullable();
             $table->string('cnic')->nullable();
             $table->text('notes')->nullable();
-            $table->string('nfc_uid')->nullable();
+            $table->string('nfc_uid')->unique()->nullable();
             $table->string('role');
             $table->string('status');
             $table->rememberToken();

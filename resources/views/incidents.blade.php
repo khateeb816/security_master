@@ -27,6 +27,9 @@
                 <button class="btn btn-outline-secondary w-100" id="exportCSV" type="button">
                     <i class="fas fa-download me-1"></i> Download Report
                 </button>
+                <a href="{{ route('incidents.pdf', request()->all()) }}" class="btn btn-outline-danger w-100 ms-2" target="_blank">
+                    <i class="fas fa-file-pdf me-1"></i> Download PDF
+                </a>
             </div>
         </form>
 
@@ -48,7 +51,7 @@
                         <tbody>
                             @forelse($incidents as $i => $incident)
                                 <tr>
-                                    <td>{{ $i + 1 + (($incidents->currentPage() - 1) * $incidents->perPage()) }}</td>
+                                    <td>{{ $i + 1}}</td>
                                     <td>{{ $incident->user->name ?? '-' }}</td>
                                     <td>{{ $incident->type }}</td>
                                     <td>{{ $incident->created_at->format('Y-m-d h:i A') }}</td>
@@ -58,6 +61,7 @@
                                             <select name="status" onchange="this.form.submit()" class="form-select form-select-sm">
                                                 <option value="active" {{ $incident->status === 'active' ? 'selected' : '' }}>Active</option>
                                                 <option value="inactive" {{ $incident->status === 'inactive' ? 'selected' : '' }}>Inactive</option>
+                                                <option value="resolved" {{ $incident->status === 'resolved' ? 'selected' : '' }}>Resolved</option>
                                             </select>
                                         </form>
                                     </td>
@@ -88,10 +92,6 @@
                     </table>
                 </div>
             </div>
-        </div>
-
-        <div class="mt-3">
-            {{ $incidents->withQueryString()->links() }}
         </div>
     </div>
 

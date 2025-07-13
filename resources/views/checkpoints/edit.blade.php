@@ -50,6 +50,10 @@
                         <label for="description" class="form-label">Checkpoint Description</label>
                         <textarea class="form-control" id="description" name="description">{{ $checkpoint->description }}</textarea>
                     </div>
+                    <div class="col-md-12">
+                        <label for="nfc_uid" class="form-label">NFC UID (optional)</label>
+                        <input type="text" class="form-control" id="nfc_uid" name="nfc_uid" value="{{ old('nfc_uid', $checkpoint->nfc_uid ?? '') }}">
+                    </div>
                     <div class="col-md-6">
                         <label for="latitude" class="form-label">Latitude</label>
                         <input type="number" step="any" class="form-control" id="latitude" name="latitude" value="{{ $checkpoint->latitude }}">

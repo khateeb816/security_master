@@ -26,6 +26,9 @@
                 <button class="btn btn-outline-secondary w-100" id="exportCSV" type="button">
                     <i class="fas fa-download me-1"></i> Download Report
                 </button>
+                <a href="<?php echo e(route('incidents.pdf', request()->all())); ?>" class="btn btn-outline-danger w-100 ms-2" target="_blank">
+                    <i class="fas fa-file-pdf me-1"></i> Download PDF
+                </a>
             </div>
         </form>
 
@@ -47,7 +50,7 @@
                         <tbody>
                             <?php $__empty_1 = true; $__currentLoopData = $incidents; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $i => $incident): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
                                 <tr>
-                                    <td><?php echo e($i + 1 + (($incidents->currentPage() - 1) * $incidents->perPage())); ?></td>
+                                    <td><?php echo e($i + 1); ?></td>
                                     <td><?php echo e($incident->user->name ?? '-'); ?></td>
                                     <td><?php echo e($incident->type); ?></td>
                                     <td><?php echo e($incident->created_at->format('Y-m-d h:i A')); ?></td>
@@ -57,6 +60,7 @@
                                             <select name="status" onchange="this.form.submit()" class="form-select form-select-sm">
                                                 <option value="active" <?php echo e($incident->status === 'active' ? 'selected' : ''); ?>>Active</option>
                                                 <option value="inactive" <?php echo e($incident->status === 'inactive' ? 'selected' : ''); ?>>Inactive</option>
+                                                <option value="resolved" <?php echo e($incident->status === 'resolved' ? 'selected' : ''); ?>>Resolved</option>
                                             </select>
                                         </form>
                                     </td>
@@ -87,11 +91,6 @@
                     </table>
                 </div>
             </div>
-        </div>
-
-        <div class="mt-3">
-            <?php echo e($incidents->withQueryString()->links()); ?>
-
         </div>
     </div>
 

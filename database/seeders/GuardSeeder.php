@@ -18,7 +18,7 @@ class GuardSeeder extends Seeder
             [
                 'name' => 'John Smith',
                 'email' => 'john.smith@security.com',
-                'password' => Hash::make('password123'),
+                'password' => Hash::make('12345678'),
                 'phone' => '+1-555-1001',
                 'address' => '100 Guard Street',
                 'city' => 'San Francisco',
@@ -35,7 +35,7 @@ class GuardSeeder extends Seeder
             [
                 'name' => 'Maria Garcia',
                 'email' => 'maria.garcia@security.com',
-                'password' => Hash::make('password123'),
+                'password' => Hash::make('12345678'),
                 'phone' => '+1-555-1002',
                 'address' => '200 Security Ave',
                 'city' => 'Chicago',
@@ -52,7 +52,7 @@ class GuardSeeder extends Seeder
             [
                 'name' => 'David Johnson',
                 'email' => 'david.johnson@security.com',
-                'password' => Hash::make('password123'),
+                'password' => Hash::make('12345678'),
                 'phone' => '+1-555-1003',
                 'address' => '300 Patrol Road',
                 'city' => 'New York',
@@ -69,7 +69,7 @@ class GuardSeeder extends Seeder
             [
                 'name' => 'Sarah Wilson',
                 'email' => 'sarah.wilson@security.com',
-                'password' => Hash::make('password123'),
+                'password' => Hash::make('12345678'),
                 'phone' => '+1-555-1004',
                 'address' => '400 Watch Lane',
                 'city' => 'Los Angeles',
@@ -86,7 +86,7 @@ class GuardSeeder extends Seeder
             [
                 'name' => 'Michael Brown',
                 'email' => 'michael.brown@security.com',
-                'password' => Hash::make('password123'),
+                'password' => Hash::make('12345678'),
                 'phone' => '+1-555-1005',
                 'address' => '500 Safety Drive',
                 'city' => 'Boston',
@@ -103,7 +103,7 @@ class GuardSeeder extends Seeder
             [
                 'name' => 'Lisa Davis',
                 'email' => 'lisa.davis@security.com',
-                'password' => Hash::make('password123'),
+                'password' => Hash::make('12345678'),
                 'phone' => '+1-555-1006',
                 'address' => '600 Protection Way',
                 'city' => 'Miami',
@@ -120,7 +120,7 @@ class GuardSeeder extends Seeder
             [
                 'name' => 'Robert Taylor',
                 'email' => 'robert.taylor@security.com',
-                'password' => Hash::make('password123'),
+                'password' => Hash::make('12345678'),
                 'phone' => '+1-555-1007',
                 'address' => '700 Guard Circle',
                 'city' => 'Seattle',
@@ -137,7 +137,7 @@ class GuardSeeder extends Seeder
             [
                 'name' => 'Jennifer Martinez',
                 'email' => 'jennifer.martinez@security.com',
-                'password' => Hash::make('password123'),
+                'password' => Hash::make('12345678'),
                 'phone' => '+1-555-1008',
                 'address' => '800 Security Blvd',
                 'city' => 'Denver',

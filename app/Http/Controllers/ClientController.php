@@ -12,7 +12,7 @@ class ClientController extends Controller
 {
     public function index()
     {
-        $clients = User::where("role", "client")->paginate(10);
+        $clients = User::where("role", "client")->get();
         return view('clients.index', compact('clients'));
     }
 

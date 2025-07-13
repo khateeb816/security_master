@@ -11,72 +11,87 @@ use Illuminate\Support\Facades\Log;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Alert;
+use App\Models\ClearedCheckpoints;
+use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 
 class ApiController extends Controller
 {
-    public function login (Request $request) {
+    public function login(Request $request)
+    {
+        //NFC Login
+        if ($request->has('nfc_uid')) {
+            $validated = $request->validate([
+                'nfc_uid' => 'required',
+                'latitude' => 'required|numeric',
+                'longitude' => 'required|numeric'
+            ]);
 
-
-        $request->validate([
-            'email' => 'required|email',
-            'password' => 'required',
-            'longitude' => 'required',
-            'latitude' => 'required'
-        ]);
-
-        if (Auth::attempt(['email' => $request->email, 'password' => $request->password])) {
-            $user = Auth::user();
-            $checkpoints = AssignCheckpoint::where('guard_id', $user->id)
-                ->where('date_to_check', today())
-                ->with('checkpoint')
-                ->orderBy('priority', 'desc')
-                ->get();
-
-
-
-            foreach($checkpoints as $assignCheckpoint) {
-                $checkpoint = $assignCheckpoint->checkpoint;
-
-
-                if (!$checkpoint) {
-
-                    continue;
-                }
-
-                $distance = DistanceHelper::calculateDistance(
-                    $request->latitude,
-                    $request->longitude,
-                    $checkpoint->latitude,
-                    $checkpoint->longitude
-                );
-
-
-                if ($distance <= $checkpoint->radius) {
-                    $token = $user->createToken('auth-token')->plainTextToken;
-                    return response()->json([
-                        'success' => true,
-                        'token' => $token,
-                        'message' => 'Login Successful',
-                        'user' => $user
-                    ], 200);
-                }
+            $user = User::where('nfc_uid', $validated['nfc_uid'])->first();
+            if (!$user) {
+                return $this->errorResponse('Invalid NFC UID', 401);
             }
+        }
+        //Email password login
+        else {
+            $validated = $request->validate([
+                'email' => 'required|email',
+                'password' => 'required',
+                'latitude' => 'required|numeric',
+                'longitude' => 'required|numeric'
+            ]);
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Not in checkpoint area'
-            ], 403);
+            if (!Auth::attempt(['email' => $validated['email'], 'password' => $validated['password']])) {
+                return $this->errorResponse('Invalid credentials', 401);
+            }
+            $user = Auth::user();
         }
 
-        return response()->json([
-            'success' => false,
-            'message' => 'Invalid credentials'
-        ], 401);
+        // Shared logic for both login types
+        $today = now()->toDateString();
+        $checkpoints = AssignCheckpoint::where('guard_id', $user->id)
+            ->whereDate('date_from', '<=', $today)
+            ->whereDate('date_to', '>=', $today)
+            ->with('checkpoint')
+            ->orderBy('date_from', 'asc')
+            ->get();
+
+        foreach ($checkpoints as $assignCheckpoint) {
+            $checkpoint = $assignCheckpoint->checkpoint;
+            if (!$checkpoint) continue;
+
+            $distance = DistanceHelper::calculateDistance(
+                $validated['latitude'],
+                $validated['longitude'],
+                $checkpoint->latitude,
+                $checkpoint->longitude
+            );
+
+            if ($distance <= $checkpoint->radius) {
+                $token = $user->createToken('auth-token')->plainTextToken;
+                return response()->json([
+                    'success' => true,
+                    'token' => $token,
+                    'message' => 'Login Successful',
+                    'user' => $user
+                ], 200);
+            }
+        }
+
+        return $this->errorResponse('Not in checkpoint area', 403);
     }
 
-    public function showCheckpoints(){
+    private function errorResponse($message, $code)
+    {
+        return response()->json([
+            'success' => false,
+            'message' => $message
+        ], $code);
+    }
+
+    public function showCheckpoints()
+    {
         // Verify Sanctum token by adding middleware
         try {
             $user = auth('sanctum')->user();
@@ -87,29 +102,18 @@ class ApiController extends Controller
                 ], 401);
             }
 
+            $today = now()->toDateString();
             $checkpoints = AssignCheckpoint::where('guard_id', $user->id)
-                ->where('date_to_check', today())
+                ->whereDate('date_from', '<=', $today)
+                ->whereDate('date_to', '>=', $today)
                 ->with('checkpoint')
-                ->get()
-                ->map(function($assignCheckpoint) {
-                    return [
-                        'id' => $assignCheckpoint->id,
-                        'name' => $assignCheckpoint->checkpoint->name,
-                        'description' => $assignCheckpoint->checkpoint->description,
-                        'latitude' => $assignCheckpoint->checkpoint->latitude,
-                        'longitude' => $assignCheckpoint->checkpoint->longitude,
-                        'radius' => $assignCheckpoint->checkpoint->radius,
-                        'status' => $assignCheckpoint->status,
-                        'time' => $assignCheckpoint->time_to_check,
-                        'priority' => $assignCheckpoint->priority,
-                    ];
-                });
+                ->orderBy('date_from', 'asc')
+                ->get();
 
             return response()->json([
                 'success' => true,
                 'checkpoints' => $checkpoints
             ], 200);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -118,16 +122,17 @@ class ApiController extends Controller
         }
     }
 
-    public function clearCheckpoint(Request $request){
+    public function clearCheckpoint(Request $request)
+    {
         $user = auth('sanctum')->user();
         $request->validate([
             'checkpoint_id' => 'required',
             'longitude' => 'required',
             'latitude' => 'required',
             'time' => 'required',
-            'image' => 'nullable',
-            'video' => 'nullable',
-            'audio' => 'nullable'
+            'date' => 'required',
+            'type' => 'required',
+            'notes' => 'nullable'
         ]);
 
         try {
@@ -140,7 +145,6 @@ class ApiController extends Controller
 
             $assignCheckpoint = AssignCheckpoint::where('id', $request->checkpoint_id)
                 ->where('guard_id', $user->id)
-                ->where('date_to_check', today())
                 ->with('checkpoint')
                 ->first();
 
@@ -169,13 +173,66 @@ class ApiController extends Controller
                 ], 400);
             }
 
+
+            $round = ClearedCheckpoints::where('user_id', $user->id)
+                ->where('checkpoint_id', $request->checkpoint_id)
+                ->count();
+
+            // Update checkpoint details
+            $clearedCheckpoint = new ClearedCheckpoints();
+            $clearedCheckpoint->checkpoint_id = $request->checkpoint_id;
+            $clearedCheckpoint->user_id = $user->id;
+            $clearedCheckpoint->round = $round + 1;
+            $clearedCheckpoint->description = $request->notes;
+            $clearedCheckpoint->longitude = $request->longitude;
+            $clearedCheckpoint->latitude = $request->latitude;
+            $clearedCheckpoint->status = 'cleared';
+            $clearedCheckpoint->time = $request->time;
+            $clearedCheckpoint->date = $request->date;
+            $clearedCheckpoint->type = $request->type;
+            $clearedCheckpoint->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Checkpoint cleared successfully',
+                'checkpoint' => $clearedCheckpoint
+            ], 200);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to clear checkpoint: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function storeIncident(Request $request)
+    {
+        $user = auth('sanctum')->user();
+        $request->validate([
+            'longitude' => 'required',
+            'latitude' => 'required',
+            'time' => 'required',
+            'image' => 'nullable',
+            'video' => 'nullable',
+            'audio' => 'nullable',
+            'type' => 'required',
+            'message' => 'nullable'
+        ]);
+
+        try {
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized'
+                ], 401);
+            }
             // Store full image json (handle base64)
             if (isset($request->image['base64']) && isset($request->image['type'])) {
                 $imageType = $request->image['type'];
                 $base64String = $request->image['base64'];
                 $extension = explode('/', $imageType)[1] ?? 'bin';
                 $fileName = uniqid('image_') . '.' . $extension;
-                $filePath = 'uploads/checkpoints/' . $fileName;
+                $filePath = 'uploads/incidents/' . $fileName;
                 file_put_contents(public_path($filePath), base64_decode($base64String));
                 $imageJson = json_encode([
                     'type' => $imageType,
@@ -191,7 +248,7 @@ class ApiController extends Controller
                 $base64String = $request->video['base64'];
                 $extension = explode('/', $videoType)[1] ?? 'bin';
                 $fileName = uniqid('video_') . '.' . $extension;
-                $filePath = 'uploads/checkpoints/' . $fileName;
+                $filePath = 'uploads/incidents/' . $fileName;
                 file_put_contents(public_path($filePath), base64_decode($base64String));
                 $videoJson = json_encode([
                     'type' => $videoType,
@@ -207,7 +264,7 @@ class ApiController extends Controller
                 $base64String = $request->audio['base64'];
                 $extension = explode('/', $audioType)[1] ?? 'bin';
                 $fileName = uniqid('audio_') . '.' . $extension;
-                $filePath = 'uploads/checkpoints/' . $fileName;
+                $filePath = 'uploads/incidents/' . $fileName;
                 file_put_contents(public_path($filePath), base64_decode($base64String));
                 $audioJson = json_encode([
                     'type' => $audioType,
@@ -216,104 +273,6 @@ class ApiController extends Controller
             } else {
                 $audioJson = null;
             }
-
-            // Update checkpoint details
-            $assignCheckpoint->longitude = $request->longitude;
-            $assignCheckpoint->latitude = $request->latitude;
-            $assignCheckpoint->checked_time = $request->time;
-            $assignCheckpoint->notes = $request->notes;
-            $assignCheckpoint->images = $imageJson;
-            $assignCheckpoint->videos = $videoJson;
-            $assignCheckpoint->audios = $audioJson;
-
-            // Check if checkpoint was cleared on time
-            $checkTime = Carbon::parse($request->time);
-            $timeToCheck = Carbon::parse($assignCheckpoint->time_to_check);
-
-            $assignCheckpoint->status = $checkTime->lte($timeToCheck) ? 'completed' : 'late';
-            $assignCheckpoint->save();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Checkpoint cleared successfully',
-                'checkpoint' => $assignCheckpoint
-            ], 200);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to clear checkpoint: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-
-    public function storeIncident(Request $request){
-        $user = auth('sanctum')->user();
-        $request->validate([
-            'longitude' => 'required',
-            'latitude' => 'required',
-            'time' => 'required',
-            'image' => 'nullable',
-            'video' => 'nullable',
-            'audio' => 'nullable',
-            'type' => 'required',
-            'message' => 'nullable'
-        ]);
-
-        try {
-            if(!$user){
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Unauthorized'
-                ], 401);
-            }
-           // Store full image json (handle base64)
-           if (isset($request->image['base64']) && isset($request->image['type'])) {
-            $imageType = $request->image['type'];
-            $base64String = $request->image['base64'];
-            $extension = explode('/', $imageType)[1] ?? 'bin';
-            $fileName = uniqid('image_') . '.' . $extension;
-            $filePath = 'uploads/incidents/' . $fileName;
-            file_put_contents(public_path($filePath), base64_decode($base64String));
-            $imageJson = json_encode([
-                'type' => $imageType,
-                'path' => $filePath
-            ]);
-        } else {
-            $imageJson = null;
-        }
-
-        // Store full videos json (handle base64)
-        if (isset($request->video['base64']) && isset($request->video['type'])) {
-            $videoType = $request->video['type'];
-            $base64String = $request->video['base64'];
-            $extension = explode('/', $videoType)[1] ?? 'bin';
-            $fileName = uniqid('video_') . '.' . $extension;
-            $filePath = 'uploads/incidents/' . $fileName;
-            file_put_contents(public_path($filePath), base64_decode($base64String));
-            $videoJson = json_encode([
-                'type' => $videoType,
-                'path' => $filePath
-            ]);
-        } else {
-            $videoJson = null;
-        }
-
-        // Store full image json (handle base64)
-        if (isset($request->audio['base64']) && isset($request->audio['type'])) {
-            $audioType = $request->audio['type'];
-            $base64String = $request->audio['base64'];
-            $extension = explode('/', $audioType)[1] ?? 'bin';
-            $fileName = uniqid('audio_') . '.' . $extension;
-            $filePath = 'uploads/incidents/' . $fileName;
-            file_put_contents(public_path($filePath), base64_decode($base64String));
-            $audioJson = json_encode([
-                'type' => $audioType,
-                'path' => $filePath
-            ]);
-        } else {
-            $audioJson = null;
-        }
             $incident = new \App\Models\incident();
             $incident->longitude = $request->longitude;
             $incident->latitude = $request->latitude;
@@ -332,7 +291,6 @@ class ApiController extends Controller
                 'message' => 'Incident reported successfully',
                 'incident' => $incident
             ], 201);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -341,10 +299,11 @@ class ApiController extends Controller
         }
     }
 
-    public function showIncidents(){
+    public function showIncidents()
+    {
         $user = auth('sanctum')->user();
 
-        if(!$user){
+        if (!$user) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized'
@@ -361,7 +320,6 @@ class ApiController extends Controller
                 'success' => true,
                 'incidents' => $incidents
             ], 200);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -370,10 +328,11 @@ class ApiController extends Controller
         }
     }
 
-    public function storeAlert(Request $request){
+    public function storeAlert(Request $request)
+    {
         $user = auth('sanctum')->user();
 
-        if(!$user){
+        if (!$user) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized'
@@ -404,7 +363,6 @@ class ApiController extends Controller
                 'message' => 'Alert created successfully',
                 'alert' => $alert
             ], 201);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -413,10 +371,11 @@ class ApiController extends Controller
         }
     }
 
-    public function showCheckpointsbyDate(Request $request){
+    public function showCheckpointsbyDate(Request $request)
+    {
         $user = auth('sanctum')->user();
 
-        if(!$user){
+        if (!$user) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized'
@@ -424,25 +383,24 @@ class ApiController extends Controller
         }
 
         $request->validate([
-           'date' => 'required|date_format:Y-m-d'
+            'date' => 'required|date_format:Y-m-d'
         ]);
 
-        $checkpoints = AssignCheckpoint::where('guard_id', $user->id)
-        ->where('date_to_check', Carbon::createFromFormat('Y-m-d', $request->date)->toDateString())
-        ->with('checkpoint')
-        ->get()
-        ->map(function($assignCheckpoint) {
-            return [
-                'id' => $assignCheckpoint->id,
-                'name' => $assignCheckpoint->checkpoint->name,
-                'description' => $assignCheckpoint->checkpoint->description,
-                'latitude' => $assignCheckpoint->checkpoint->latitude,
-                'longitude' => $assignCheckpoint->checkpoint->longitude,
-                'radius' => $assignCheckpoint->checkpoint->radius,
-                'status' => $assignCheckpoint->status,
-                'time' => $assignCheckpoint->time_to_check
-            ];
-        });
+        $checkpoints = ClearedCheckpoints::where('user_id', $user->id)
+            ->where('date', Carbon::createFromFormat('Y-m-d', $request->date)->toDateString())
+            ->with('checkpoint')
+            ->get()
+            ->map(function ($clearedCheckpoint) {
+                return [
+                    'id' => $clearedCheckpoint->id,
+                    'name' => $clearedCheckpoint->checkpoint->name,
+                    'description' => $clearedCheckpoint->checkpoint->description,
+                    'latitude' => $clearedCheckpoint->checkpoint->latitude,
+                    'longitude' => $clearedCheckpoint->checkpoint->longitude,
+                    'radius' => $clearedCheckpoint->checkpoint->radius,
+                    'time' => $clearedCheckpoint->time
+                ];
+            });
 
         return response()->json([
             'success' => true,
@@ -450,10 +408,11 @@ class ApiController extends Controller
         ], 200);
     }
 
-    public function showIncidentsbyDate(Request $request){
+    public function showIncidentsbyDate(Request $request)
+    {
         $user = auth('sanctum')->user();
 
-        if(!$user){
+        if (!$user) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized'
@@ -474,7 +433,6 @@ class ApiController extends Controller
                 'success' => true,
                 'incidents' => $incidents
             ], 200);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -482,7 +440,8 @@ class ApiController extends Controller
             ], 500);
         }
     }
-    public function logout(){
+    public function logout()
+    {
         try {
             // Get authenticated user
             $user = auth('sanctum')->user();
@@ -501,7 +460,6 @@ class ApiController extends Controller
                 'success' => true,
                 'message' => 'Successfully logged out'
             ], 200);
-
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
@@ -510,10 +468,11 @@ class ApiController extends Controller
         }
     }
 
-    public function updateGuardProfile(Request $request){
+    public function updateGuardProfile(Request $request)
+    {
         $user = auth('sanctum')->user();
 
-        if(!$user){
+        if (!$user) {
             return response()->json([
                 'success' => false,
                 'message' => 'Unauthorized'
@@ -546,7 +505,7 @@ class ApiController extends Controller
             $user->language = $request->language;
             $user->cnic = $request->cnic;
             $user->country = $request->country;
-            if($request->password){
+            if ($request->password) {
                 $user->password = Hash::make($request->password);
             }
             $user->save();
@@ -562,5 +521,86 @@ class ApiController extends Controller
                 'message' => 'Failed to update profile: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    public function lastClearedCheckpoint(Request $request)
+    {
+        $user = auth('sanctum')->user();
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized'
+            ], 401);
+        }
+        $lastCleared = \App\Models\ClearedCheckpoints::where('user_id', $user->id)
+            ->with('checkpoint')
+            ->orderByDesc('date')
+            ->orderByDesc('time')
+            ->first();
+
+        if (!$lastCleared) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No cleared checkpoints found.'
+            ], 404);
+        }
+        return response()->json([
+            'success' => true,
+            'checkpoint' => $lastCleared
+        ], 200);
+    }
+
+    public function activeIncidents(Request $request)
+    {
+        $user = auth('sanctum')->user();
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized'
+            ], 401);
+        }
+        $incidents = \App\Models\incident::where('status', 'active')
+            ->orderByDesc('created_at')
+            ->get();
+        return response()->json([
+            'success' => true,
+            'incidents' => $incidents
+        ], 200);
+    }
+
+    public function updateIncidentStatus(Request $request)
+    {
+        $user = auth('sanctum')->user();
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized'
+            ], 401);
+        }
+
+        $request->validate([
+            'incident_id' => 'required|exists:incidents,id',
+            'status' => 'required|string'
+        ]);
+
+        $incident = \App\Models\incident::where('id', $request->incident_id)
+            ->where('user_id', $user->id)
+            ->first();
+
+        if (!$incident) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Incident not found or not set by you'
+            ], 404);
+        }
+
+        $incident->status = $request->status;
+        $incident->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Incident status updated successfully',
+            'incident' => $incident
+        ], 200);
     }
 }

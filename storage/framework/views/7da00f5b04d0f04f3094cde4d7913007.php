@@ -26,6 +26,9 @@
                 <button class="btn btn-outline-secondary w-100" id="exportCSV" type="button">
                     <i class="fas fa-download me-1"></i> Download Report
                 </button>
+                <a href="<?php echo e(route('patrol.logs.pdf', request()->all())); ?>" class="btn btn-outline-danger w-100 ms-2" target="_blank">
+                    <i class="fas fa-file-pdf me-1"></i> Download PDF
+                </a>
             </div>
         </form>
 
@@ -40,7 +43,8 @@
                                 <th>Checkpoint</th>
                                 <th>Date</th>
                                 <th>Time</th>
-                                <th>Status</th>
+                                <th>Round</th>
+                                <th>Type</th>
                                 <th>Map</th>
                             </tr>
                         </thead>
@@ -48,32 +52,45 @@
                             <?php $__empty_1 = true; $__currentLoopData = $logs; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $i => $log): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); $__empty_1 = false; ?>
                                 <tr>
                                     <td><?php echo e($i + 1); ?></td>
-                                    <td><?php echo e($log->user_guard->name ?? '-'); ?></td>
+                                    <td><?php echo e($log->user->name ?? '-'); ?></td>
                                     <td><?php echo e($log->checkpoint->name ?? '-'); ?></td>
-                                    <td><?php echo e(\Carbon\Carbon::parse($log->date_to_check)->format('Y-m-d')); ?></td>
-                                    <td><?php echo e(\Carbon\Carbon::parse($log->time_to_check)->format('h:i A')); ?></td>
-                                    <td>
-                                        <?php if($log->status === 'Completed'): ?>
-                                            <span class="badge bg-success rounded-pill px-3">Completed</span>
-                                        <?php elseif($log->status === 'Missed'): ?>
-                                            <span class="badge bg-danger rounded-pill px-3">Missed</span>
-                                        <?php else: ?>
-                                            <span class="badge bg-warning text-dark rounded-pill px-3"><?php echo e($log->status); ?></span>
-                                        <?php endif; ?>
-                                    </td>
+                                    <td><?php echo e(\Carbon\Carbon::parse($log->date)->format('Y-m-d')); ?></td>
+                                    <td><?php echo e(\Carbon\Carbon::parse($log->time)->format('h:i A')); ?></td>
+                                    <td><?php echo e($log->round ?? '-'); ?></td>
+                                    <td><?php echo e($log->type ?? '-'); ?></td>
                                     <td>
                                         <div class="d-flex gap-1">
                                             <?php if($log->checkpoint && $log->checkpoint->latitude && $log->checkpoint->longitude): ?>
                                                 <button type="button"
                                                     class="btn btn-sm btn-outline-primary"
-                                                    onclick="showPatrolLogMap(<?php echo e($log->checkpoint->latitude); ?>, <?php echo e($log->checkpoint->longitude); ?>, 'Checkpoint Location')">
+                                                    onclick="showPatrolLogMap(
+                                                        '<?php echo e($log->checkpoint->latitude ?? ''); ?>',
+                                                        '<?php echo e($log->checkpoint->longitude ?? ''); ?>',
+                                                        `Check Point Name: <?php echo e($log->checkpoint->name ?? '---'); ?><br>
+                                                        Date: <?php echo e(\Carbon\Carbon::parse($log->created_at)->format('d-m-Y H:i:s')); ?><br>
+                                                        Guard: <?php echo e($log->user->name ?? '-'); ?> (<?php echo e($log->user->id ?? ''); ?>)<br>
+                                                        Lat/Lon: <?php echo e($log->checkpoint->latitude ?? ''); ?>/<?php echo e($log->checkpoint->longitude ?? ''); ?>`
+                                                    )">
                                                     Checkpoint Map
                                                 </button>
                                             <?php endif; ?>
+                                            <?php
+                                                $distance = null;
+                                                if ($log->checkpoint && $log->checkpoint->latitude && $log->checkpoint->longitude && $log->latitude && $log->longitude) {
+                                                    $distance = \App\Helpers\DistanceHelper::calculateDistance($log->checkpoint->latitude, $log->checkpoint->longitude, $log->latitude, $log->longitude);
+                                                }
+                                            ?>
                                             <?php if($log->latitude && $log->longitude): ?>
                                                 <button type="button"
                                                     class="btn btn-sm btn-info"
-                                                    onclick="showPatrolLogMap(<?php echo e($log->latitude); ?>, <?php echo e($log->longitude); ?>, 'Checked Location')">
+                                                    onclick="showPatrolLogMap(
+                                                        '<?php echo e($log->latitude); ?>',
+                                                        '<?php echo e($log->longitude); ?>',
+                                                        `Check Point Name: <?php echo e($log->checkpoint->name ?? '---'); ?><br>
+                                                        Date: <?php echo e(\Carbon\Carbon::parse($log->created_at)->format('d-m-Y H:i:s')); ?><br>
+                                                        Guard: <?php echo e($log->user->name ?? '-'); ?> (<?php echo e($log->user->id ?? ''); ?>)<br>
+                                                        Lat/Lon: <?php echo e($log->latitude); ?>/<?php echo e($log->longitude); ?>`
+                                                    )">
                                                     Checked Map
                                                 </button>
                                             <?php endif; ?>
@@ -81,13 +98,6 @@
                                                 <span class="text-muted">N/A</span>
                                             <?php endif; ?>
                                         </div>
-                                        <?php if(strtolower($log->status) !== 'pending'): ?>
-                                            <button type="button"
-                                                class="btn btn-sm btn-primary mt-1"
-                                                onclick="showPatrolMedia('<?php echo e($log->images); ?>', '<?php echo e($log->videos); ?>', '<?php echo e($log->audios); ?>')">
-                                                Show Media
-                                            </button>
-                                        <?php endif; ?>
                                     </td>
                                 </tr>
                             <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); if ($__empty_1): ?>
@@ -100,10 +110,8 @@
                 </div>
             </div>
         </div>
-        <div class="mt-3">
-            <?php echo e($logs->withQueryString()->links()); ?>
-
-        </div>
+        
+        
     </div>
 
     <!-- Include JavaScript for export functionality -->
@@ -174,21 +182,6 @@
         </div>
     </div>
 
-    <!-- Patrol Media Modal -->
-    <div class="modal fade" id="patrolMediaModal" tabindex="-1" aria-labelledby="patrolMediaModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="patrolMediaModalLabel">Patrol Media</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body" id="patrolMediaContent">
-                    <!-- Media will be loaded here -->
-                </div>
-            </div>
-        </div>
-    </div>
-
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
@@ -209,34 +202,6 @@
             L.marker([lat, lng]).addTo(window.patrolLogMapInstance)
                 .bindPopup(label || 'Location').openPopup();
         }, 300); // Wait for modal to render
-    }
-
-    function showPatrolMedia(images, videos, audios) {
-        let content = '';
-        function safeParse(json) {
-            try { return JSON.parse(json); } catch { return null; }
-        }
-        // Images
-        const imageObj = safeParse(images);
-        if (imageObj && imageObj.path) {
-            content += `<div><strong>Image:</strong><br><img src='${imageObj.path}' alt='Patrol Image' style='max-width:100%;height:auto;'/></div><hr>`;
-        }
-        // Videos
-        const videoObj = safeParse(videos);
-        if (videoObj && videoObj.path) {
-            content += `<div><strong>Video:</strong><br><video controls style='max-width:100%;height:auto;'><source src='${videoObj.path}' type='${videoObj.type}'></video></div><hr>`;
-        }
-        // Audios
-        const audioObj = safeParse(audios);
-        if (audioObj && audioObj.path) {
-            content += `<div><strong>Audio:</strong><br><audio controls style='width:100%;'><source src='${audioObj.path}' type='${audioObj.type}'></audio></div>`;
-        }
-        if (!content) {
-            content = '<div class="text-muted">No media available for this patrol log.</div>';
-        }
-        document.getElementById('patrolMediaContent').innerHTML = content;
-        var modal = new bootstrap.Modal(document.getElementById('patrolMediaModal'));
-        modal.show();
     }
     </script>
 <?php $__env->stopSection(); ?>

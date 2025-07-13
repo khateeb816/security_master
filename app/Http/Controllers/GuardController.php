@@ -9,12 +9,13 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Models\AssignCheckpoint;
+use Barryvdh\DomPDF\Facade\Pdf as DomPDF;
 
 class GuardController extends Controller
 {
     public function index()
     {
-        $guards = User::where('role', 'guard')->paginate(10);
+        $guards = User::where('role', 'guard')->get();
         $clients = User::where('role', 'client')->get();
         return view('guards.index', compact('guards', 'clients'));
     }
@@ -125,9 +126,8 @@ class GuardController extends Controller
             'client_id' => 'required|exists:users,id',
             'branch_id' => 'required|exists:branches,id',
             'checkpoint_id' => 'required|exists:checkpoints,id',
-            'date' => 'required|date',
-            'time' => 'required',
-            'priority' => 'required|integer',
+            'date_from' => 'required|date',
+            'date_to' => 'required|date|after_or_equal:date_from',
             'notes' => 'nullable|string',
         ]);
 
@@ -150,9 +150,8 @@ class GuardController extends Controller
                 ->where('id', $request->assignment_id)
                 ->update([
                     'checkpoint_id' => $request->checkpoint_id,
-                    'date_to_check' => $request->date,
-                    'time_to_check' => $request->time,
-                    'priority' => (int) $request->priority,
+                    'date_from' => $request->date_from,
+                    'date_to' => $request->date_to,
                     'notes' => $request->notes,
                     'updated_at' => now(),
                 ]);
@@ -163,11 +162,9 @@ class GuardController extends Controller
             DB::table('assign_checkpoints')->insert([
                 'guard_id' => $request->guard_id,
                 'checkpoint_id' => $request->checkpoint_id,
-                'date_to_check' => $request->date,
-                'time_to_check' => $request->time,
-                'priority' => (int) $request->priority,
+                'date_from' => $request->date_from,
+                'date_to' => $request->date_to,
                 'notes' => $request->notes,
-                'status' => 'pending',
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
@@ -201,12 +198,12 @@ class GuardController extends Controller
 
     public function patrolLogs(Request $request)
     {
-        $query = \App\Models\AssignCheckpoint::with(['checkpoint', 'user_guard']);
+        $query = \App\Models\ClearedCheckpoints::with(['checkpoint', 'user']);
 
         // Filter by guard or checkpoint name
         if ($request->search) {
             $query->where(function($q) use ($request) {
-                $q->whereHas('user_guard', function($q2) use ($request) {
+                $q->whereHas('user', function($q2) use ($request) {
                     $q2->where('name', 'like', '%' . $request->search . '%');
                 })->orWhereHas('checkpoint', function($q2) use ($request) {
                     $q2->where('name', 'like', '%' . $request->search . '%');
@@ -216,12 +213,23 @@ class GuardController extends Controller
 
         // Filter by date
         if ($request->date) {
-            $query->whereDate('date_to_check', $request->date);
+            $query->whereDate('created_at', $request->date);
         }
 
-        $logs = $query->paginate(20);
+        $logs = $query->get();
 
         return view('patrol_logs', compact('logs'));
+    }
+
+    public function patrolLogsPdf(Request $request)
+    {
+        // Use the same logic as patrolLogs to get filtered logs
+        $logs = $this->patrolLogs($request);
+        if (is_a($logs, 'Illuminate\View\View')) {
+            $logs = $logs->getData()['logs'] ?? [];
+        }
+        $pdf = DomPDF::loadView('pdf.patrol_logs', compact('logs'));
+        return $pdf->download('patrol_logs.pdf');
     }
 
     public function incidents(Request $request)
@@ -242,9 +250,20 @@ class GuardController extends Controller
             $query->whereDate('created_at', $request->date);
         }
 
-        $incidents = $query->paginate(20);
+        $incidents = $query->get();
 
         return view('incidents', compact('incidents'));
+    }
+
+    public function incidentsPdf(Request $request)
+    {
+        // Use the same logic as incidents to get filtered incidents
+        $incidents = $this->incidents($request);
+        if (is_a($incidents, 'Illuminate\View\View')) {
+            $incidents = $incidents->getData()['incidents'] ?? [];
+        }
+        $pdf = DomPDF::loadView('pdf.incidents', compact('incidents'));
+        return $pdf->download('incidents.pdf');
     }
 
     public function alerts(Request $request)
@@ -265,7 +284,7 @@ class GuardController extends Controller
             $query->whereDate('created_at', $request->date);
         }
 
-        $alerts = $query->paginate(20);
+        $alerts = $query->get();
 
         return view('alerts', compact('alerts'));
     }

@@ -24,6 +24,7 @@ class Checkpoint extends Model
         'latitude',
         'longitude',
         'radius',
+        'nfc_uid',
     ];
 
     /**
@@ -50,5 +51,19 @@ class Checkpoint extends Model
     public function client(): BelongsTo
     {
         return $this->belongsTo(\App\Models\User::class, 'client_id');
+    }
+
+    public function assignCheckpoints()
+    {
+        return $this->hasMany(\App\Models\AssignCheckpoint::class, 'checkpoint_id');
+    }
+
+    protected static function boot()
+    {
+        parent::boot();
+
+        static::deleting(function ($checkpoint) {
+            $checkpoint->assignCheckpoints()->delete();
+        });
     }
 }

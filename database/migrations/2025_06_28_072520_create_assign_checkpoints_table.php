@@ -15,18 +15,9 @@ return new class extends Migration
             $table->id();
             $table->integer('checkpoint_id');
             $table->integer('guard_id');
-            $table->date('date_to_check');
-            $table->time('time_to_check');
-            $table->string('checked_time')->nullable();
-            $table->string('status')->default('pending');
-            $table->integer('priority')->default(0);
-            $table->json('images')->nullable();//{type , url}
-            $table->json('videos')->nullable();//{type , url}
-            $table->json('audios')->nullable();//{type , url}
-            $table->string('nfc_tag')->nullable();
+            $table->date('date_from');
+            $table->date('date_to');
             $table->string('notes')->nullable();
-            $table->string('longitude')->nullable();
-            $table->string('latitude')->nullable();
             $table->timestamps();
             $table->softDeletes();
         });

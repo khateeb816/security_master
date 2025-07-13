@@ -30,7 +30,7 @@
                         <tbody>
                             @forelse($alerts as $i => $alert)
                                 <tr>
-                                    <td>{{ $i + 1 + (($alerts->currentPage() - 1) * $alerts->perPage()) }}</td>
+                                    <td>{{ $i + 1  }}</td>
                                     <td>{{ $alert->user->name ?? '-' }}</td>
                                     <td>{{ $alert->type }}</td>
                                     <td>{{ $alert->created_at->format('Y-m-d h:i A') }}</td>
@@ -67,10 +67,6 @@
                     </table>
                 </div>
             </div>
-        </div>
-
-        <div class="mt-3">
-            {{ $alerts->withQueryString()->links() }}
         </div>
     </div>
 

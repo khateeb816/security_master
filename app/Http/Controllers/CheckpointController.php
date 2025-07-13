@@ -12,6 +12,12 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
+use BaconQrCode\Renderer\ImageRenderer;
+use BaconQrCode\Renderer\Image\GdImageBackEnd;
+use BaconQrCode\Renderer\Image\ImageBackEndInterface;
+use BaconQrCode\Renderer\RendererStyle\RendererStyle;
+use BaconQrCode\Writer;
+use Endroid\QrCode\Builder\Builder;
 
 class CheckpointController extends Controller
 {
@@ -93,6 +99,7 @@ class CheckpointController extends Controller
             'longitude' => 'nullable|numeric|between:-180,180',
             'radius' => 'required|integer|min:0',
             'is_active' => 'sometimes|boolean',
+            'nfc_uid' => 'nullable',
         ]);
 
 
@@ -108,6 +115,7 @@ class CheckpointController extends Controller
                 'longitude' => $validated['longitude'] ?? null,
                 'radius' => $validated['radius'],
                 'is_active' => $request->has('is_active') ? $validated['is_active'] : false,
+                'nfc_uid' => $validated['nfc_uid'] ?? null,
             ]);
 
             DB::commit();
@@ -232,6 +240,7 @@ class CheckpointController extends Controller
             'longitude' => 'nullable|numeric|between:-180,180',
             'radius' => 'required|integer|min:0',
             'is_active' => 'sometimes|boolean',
+            'nfc_uid' => 'nullable',
         ]);
 
         try {
@@ -246,6 +255,7 @@ class CheckpointController extends Controller
                 'longitude' => $validated['longitude'] ?? null,
                 'radius' => $validated['radius'],
                 'is_active' => $request->has('is_active') ? $validated['is_active'] : false,
+                'nfc_uid' => $request->nfc_uid ?? null,
             ]);
             DB::commit();
             return redirect()->route('clients.branches.checkpoints.index', [
@@ -294,5 +304,34 @@ class CheckpointController extends Controller
             'checkpoint' => $checkpoint,
             'qr' => QrCode::size(300)->generate($qrData)
         ]);
+    }
+
+    /**
+     * Download the QR code as an image file.
+     *
+     * @param  int  $clientId
+     * @param  int  $branchId
+     * @param  int  $checkpointId
+     * @return \Illuminate\Http\Response
+     */
+    public function downloadQrCode($clientId, $branchId, $checkpointId)
+    {
+        $checkpoint = Checkpoint::where('branch_id', $branchId)
+            ->findOrFail($checkpointId);
+
+        $qrData =  $checkpoint->id;
+
+        $result = Builder::create()
+            ->data($qrData)
+            ->size(400)
+            ->margin(10)
+            ->build();
+
+        $filename = 'qrcode_' . $checkpoint->name . '_' . $checkpoint->id . '.png';
+        $filename = preg_replace('/[^a-zA-Z0-9._-]/', '_', $filename);
+
+        return response($result->getString())
+            ->header('Content-Type', 'image/png')
+            ->header('Content-Disposition', 'attachment; filename="' . $filename . '"');
     }
 }

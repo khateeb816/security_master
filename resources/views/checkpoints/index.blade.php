@@ -26,6 +26,7 @@
                         <span class="input-group-text bg-white border-info" style="border-radius: 0 8px 8px 0;"><i class="fas fa-code-branch text-info"></i></span>
                     </div>
                     <button type="submit" class="btn btn-primary" style="height: 38px; border-radius: 8px; min-width: 90px;">Filter</button>
+                    <a href="{{ route('checkpoints.all') }}" class="btn btn-outline-secondary" style="height: 38px; border-radius: 8px; min-width: 90px;">Reset Filter</a>
                 </form>
                 <a href="#" class="btn btn-primary d-flex align-items-center gap-2" id="addCheckpointBtn" style="height: 38px; border-radius: 8px;">
                     <i class="fas fa-plus-circle"></i>
@@ -191,6 +192,10 @@
                         <div class="col-md-12">
                             <label for="description" class="form-label">Checkpoint Description </label>
                             <textarea class="form-control" id="description" name="description"></textarea>
+                        </div>
+                        <div class="col-md-12">
+                            <label for="nfc_uid" class="form-label">NFC UID (optional)</label>
+                            <input type="text" class="form-control" id="nfc_uid" name="nfc_uid">
                         </div>
 
                         <div class="col-md-6">
