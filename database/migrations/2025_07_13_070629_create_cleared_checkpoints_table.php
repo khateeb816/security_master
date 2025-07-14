@@ -17,7 +17,7 @@ return new class extends Migration
             $table->integer('user_id');
             $table->string('status')->default('pending');
             $table->integer('round')->nullable();
-            $table->string('description')->nullable();
+            $table->string('value')->nullable();
             $table->string('longitude')->nullable();
             $table->string('latitude')->nullable();
             $table->string('time')->nullable();

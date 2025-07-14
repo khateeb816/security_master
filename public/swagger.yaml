@@ -91,7 +91,7 @@ paths:
   /api/guard/checkpoint/clear:
     post:
       summary: Clear Checkpoint
-      description: Mark a checkpoint as cleared by a guard. Requires checkpoint_id, latitude, longitude, time, date, type, and optional notes.
+      description: Mark a checkpoint as cleared by a guard. Requires checkpoint_id, latitude, longitude, time, date, type, and optional value.
       requestBody:
         required: true
         content:
@@ -119,14 +119,14 @@ paths:
                   type: string
                   example: '2024-07-01T12:00:00Z'
                 date:
-                      type: string
-                  example: '2024-07-01'
-                    type:
-                      type: string
-                  example: 'manual'
-                notes:
-                      type: string
-                  example: 'Checked by supervisor'
+                    type: string
+                    example: '2024-07-01'
+                type:
+                    type: string
+                    example: 'manual'
+                value:
+                    type: string
+                    example: 'optional value'
       responses:
         '200':
           description: Checkpoint cleared

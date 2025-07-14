@@ -14,7 +14,7 @@ class ClearedCheckpoints extends Model
         'user_id',
         'status',
         'round',
-        'description',
+        'value',
         'time',
         'date',
         'type',

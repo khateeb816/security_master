@@ -132,7 +132,7 @@ class ApiController extends Controller
             'time' => 'required',
             'date' => 'required',
             'type' => 'required',
-            'notes' => 'nullable'
+            'value' => 'nullable'
         ]);
 
         try {
@@ -183,7 +183,7 @@ class ApiController extends Controller
             $clearedCheckpoint->checkpoint_id = $request->checkpoint_id;
             $clearedCheckpoint->user_id = $user->id;
             $clearedCheckpoint->round = $round + 1;
-            $clearedCheckpoint->description = $request->notes;
+            $clearedCheckpoint->value = $request->value;
             $clearedCheckpoint->longitude = $request->longitude;
             $clearedCheckpoint->latitude = $request->latitude;
             $clearedCheckpoint->status = 'cleared';
