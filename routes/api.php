@@ -45,8 +45,11 @@ Route::get('guard/incidents/show' , [ApiController::class , 'showIncidents']);
 //store Alert
 Route::post('guard/alert' , [ApiController::class , 'storeAlert']);
 
-//show checkpoints of user by date
+//show cleared checkpoints of user by date
 Route::post('guard/checkpoints/show' , [ApiController::class , 'showCheckpointsbyDate']);
+
+//show all cleared checkpoints
+Route::get('guard/checkpoints/all' , [ApiController::class , 'showAllClearedCheckpoints']);
 
 //show Incidents of user by date
 Route::post('guard/incidents/show' , [ApiController::class , 'showIncidentsbyDate']);

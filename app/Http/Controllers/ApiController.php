@@ -481,7 +481,6 @@ class ApiController extends Controller
 
         $request->validate([
             'name' => 'nullable',
-            'email' => 'nullable|email',
             'phone' => 'nullable',
             'address' => 'nullable',
             'city' => 'nullable',
@@ -495,30 +494,40 @@ class ApiController extends Controller
         ]);
 
         try {
-            $user->name = $request->name;
-            $user->email = $request->email;
-            $user->phone = $request->phone;
-            $user->address = $request->address;
-            $user->city = $request->city;
-            $user->state = $request->state;
-            $user->zip = $request->zip;
-            $user->language = $request->language;
-            $user->cnic = $request->cnic;
-            $user->country = $request->country;
-            if ($request->password) {
+            $fields = [
+                'name',
+                'phone',
+                'address',
+                'city',
+                'state',
+                'zip',
+                'language',
+                'cnic',
+                'country'
+            ];
+            foreach ($fields as $field) {
+                if ($request->filled($field)) {
+                    $user->$field = $request->$field;
+                }
+            }
+            if ($request->filled('password')) {
                 $user->password = Hash::make($request->password);
             }
             $user->save();
 
+            // Return only safe fields
+            $safeUser = $user->only(array_merge($fields, ['id', 'email', 'created_at', 'updated_at']));
+
             return response()->json([
                 'success' => true,
                 'message' => 'Profile updated successfully',
-                'user' => $user
+                'user' => $safeUser
             ], 200);
         } catch (\Exception $e) {
+            Log::error('Profile update failed', ['error' => $e->getMessage()]);
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to update profile: ' . $e->getMessage()
+                'message' => 'Failed to update profile.'
             ], 500);
         }
     }
@@ -601,6 +610,25 @@ class ApiController extends Controller
             'success' => true,
             'message' => 'Incident status updated successfully',
             'incident' => $incident
+        ], 200);
+    }
+
+    public function showAllClearedCheckpoints(Request $request)
+    {
+        $user = auth('sanctum')->user();
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized'
+            ], 401);
+        }
+        $checkpoints = \App\Models\ClearedCheckpoints::where('user_id', $user->id)
+            ->orderByDesc('date')
+            ->with('checkpoint')
+            ->get();
+        return response()->json([
+            'success' => true,
+            'checkpoints' => $checkpoints
         ], 200);
     }
 }

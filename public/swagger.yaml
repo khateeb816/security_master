@@ -302,6 +302,18 @@ paths:
         '404':
           description: No cleared checkpoints found
 
+  /api/guard/checkpoints/all:
+    get:
+      summary: Show All Cleared Checkpoints
+      description: Get all cleared checkpoints for the authenticated guard.
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of all cleared checkpoints
+        '401':
+          description: Unauthorized
+
   /api/guard/active-incidents:
     get:
       summary: Active Incidents
@@ -338,9 +350,6 @@ paths:
                 name:
                   type: string
                   example: John Doe
-                email:
-                  type: string
-                  example: cghf@hn.com
                 phone:
                   type: string
                   example: '03001234567'
